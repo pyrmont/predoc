@@ -142,7 +142,6 @@
 
 (defn- render-command [b node &opt inline?]
   (def name (get node :value))
-  (pp progname)
   (if (= progname name)
     (do
      (ensure-nl b)
