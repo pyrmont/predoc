@@ -334,10 +334,10 @@
     :tag-d (* ":" :nl)
     :tag-p (* '(some (if-not :tag-d 1)) :tag-d)
     :tag (some (/ (* :tag-m
-                  :tag-p
-                  (group (some (if-not :tag-m :line)))
-                  (+ (if (> :nl) (constant true))
-                     (constant false))) ,make-tag))
+                     :tag-p
+                     (group (some (if-not :tag-m :line)))
+                     (+ (if (> :nl) (constant true))
+                        (constant false))) ,make-tag))
     # list item
     :li-m (* :indent '(+ (* :d+ "." (some " ")) (* (set "-*") :hs+)))
     :li (/ (* :li-m :line (any (if-not :li-m :line))) ,make-li)
