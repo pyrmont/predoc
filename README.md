@@ -59,7 +59,7 @@ is a command-line tool for converting documents written in Predoc to manpages wr
 
 which in turn is rendered by `man` into this:
 
-<img src="./res/example.png" height="500" alt="predoc manpage" title="predoc manpage">
+<img src="./res/example.png" alt="predoc manpage" title="predoc manpage" style="style="width: 100%; height: auto;">
 
 ## Installation
 
