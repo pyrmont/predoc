@@ -1,0 +1,22 @@
+{:name "predoc"
+ :description "A tool in Janet to convert manpages from Predoc to mdoc"
+ :author "Michael Camilleri"
+ :license "MIT"
+ :url "https://github.com/pyrmont/predoc"
+ :repo "git+https://github.com/pyrmont/predoc"
+
+ :vendored {
+   "deps" [
+    {:url "https://github.com/pyrmont/argy-bargy"
+     :prefix "argy-bargy"
+     :include ["argy-bargy.janet"
+               "LICENSE"]}
+    {:url "https://github.com/pyrmont/testament"
+     :prefix "testament"
+     :include ["lib/testament.janet"
+               "init.janet"
+               "LICENSE"]}]}
+
+ :executable ["bin/predoc"]
+ :source {:prefix "predoc"
+          :files ["deps" "lib" "init.janet"]}}
