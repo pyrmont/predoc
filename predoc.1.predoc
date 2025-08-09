@@ -1,0 +1,53 @@
+---
+Title: PREDOC(1)
+Authors: Michael Camilleri <mike@inqk.net>
+Date: August 9, 2025
+---
+
+NAME
+====
+
+**predoc** - converter from Predoc to mdoc
+
+SYNOPSIS
+========
+
+**predoc** [**--output** _path_] _program_ [_input_]
+
+DESCRIPTION
+===========
+
+**predoc** is a command-line tool for converting documents written in Predoc to
+manpages written in mdoc.
+
+Options
+-------
+
+- **--output** _path_:
+  Set the path for output. By default, **predoc** will output to `STDOUT`.
+
+- _program_:
+  Set the name of the program to document. References in your Predoc document to
+  ``**program**`` will be converted into instances of the `Nm` macro.
+
+- _path_:
+  Set the input path. By default, **predoc** will read from `STDIN`.
+
+EXIT STATUS
+===========
+
+**predoc** exits `0` if exiting without error. Otherwise the exit status will be `1`.
+
+EXAMPLES
+========
+
+Convert a Predoc document for a program called **example** to an mdoc manpage:
+
+`````
+$ predoc --output example.1 example example.1.predoc
+`````
+
+BUGS
+====
+
+Report issues on GitHub.

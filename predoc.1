@@ -1,0 +1,61 @@
+.Dd August 9, 2025
+.Dt PREDOC 1
+.
+.Sh NAME
+.Nm predoc
+.Nd converter from Predoc to mdoc
+.
+.Sh SYNOPSIS
+.Nm
+.Op Fl -output Ar path
+.Ar program
+.Op Ar input
+.
+.Sh DESCRIPTION
+.Nm
+is a command-line tool for converting documents written in Predoc to manpages written in mdoc.
+.
+.Ss Options
+.Bl -tag -width Ds
+.It Ic --output Ar path
+Set the path for output.
+By default,
+.Nm
+will output to 
+.Ev STDOUT .
+.It Ar program
+Set the name of the program to document.
+References in your Predoc document to 
+.Ql "**program**"
+will be converted into instances of the 
+.Ql "Nm"
+macro.
+.It Ar path
+Set the input path.
+By default,
+.Nm
+will read from 
+.Ev STDIN .
+.El
+.
+.Sh EXIT STATUS
+.Nm
+exits 
+.Ql "0"
+if exiting without error.
+Otherwise the exit status will be 
+.Ql "1" .
+.
+.Sh EXAMPLES
+Convert a Predoc document for a program called 
+.Ic example
+to an mdoc manpage:
+.Bd -literal -offset indent
+$ predoc --output example.1 example example.1.predoc
+.Ed
+.
+.
+.Sh AUTHORS
+.An Michael Camilleri Aq Mt mike@inqk.net
+.Sh BUGS
+Report issues on GitHub.
