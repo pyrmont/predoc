@@ -8,6 +8,53 @@ in mdoc.
 > Predoc is in an alpha stage of development. There are likely to be bugs and
 > gaps in its implementation.
 
+Predoc takes this:
+
+```md
+---
+Title: PREDOC(1)
+Authors: Michael Camilleri <mike@inqk.net>
+Date: August 9, 2025
+---
+
+NAME
+====
+
+**predoc** - converter from Predoc to mdoc
+
+SYNOPSIS
+========
+
+**predoc** [**--output** _path_] _program_ [_input_]
+
+DESCRIPTION
+===========
+
+**predoc** is a command-line tool for converting documents written in Predoc to
+manpages written in mdoc.
+```
+
+and converts it to this:
+
+```mdoc
+.Dd August 9, 2025
+.Dt PREDOC 1
+.
+.Sh NAME
+.Nm predoc
+.Nd converter from Predoc to mdoc
+.
+.Sh SYNOPSIS
+.Nm
+.Op Fl -output Ar path
+.Ar program
+.Op Ar input
+.
+.Sh DESCRIPTION
+.Nm
+is a command-line tool for converting documents written in Predoc to manpages written in mdoc.
+```
+
 ## Installation
 
 Clone the repository into `./predoc` and run `janet --install predoc`.
