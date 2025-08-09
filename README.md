@@ -8,7 +8,9 @@ in mdoc.
 > Predoc is in an alpha stage of development. There are likely to be bugs and
 > gaps in its implementation.
 
-Predoc takes this:
+## Example
+
+The `predoc` tool takes this:
 
 ```md
 ---
@@ -54,6 +56,10 @@ and converts it to this:
 .Nm
 is a command-line tool for converting documents written in Predoc to manpages written in mdoc.
 ```
+
+which in turn is rendered by `man` into this:
+
+<img src="./res/example.png" height="500" alt="predoc manpage" title="predoc manpage">
 
 ## Installation
 
