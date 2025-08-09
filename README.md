@@ -70,7 +70,7 @@ Clone the repository into `./predoc` and run `janet --install predoc`.
 To convert a manpage for the program `example` from Predoc to mdoc:
 
 ```
-pandoc --output example.1 example example.1.predoc
+$ predoc --output example.1 example example.1.predoc
 ```
 
 ## Bugs
