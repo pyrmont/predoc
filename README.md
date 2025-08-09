@@ -1,6 +1,6 @@
 # Predoc
 
-Predoc is both a Markdown flavour specifically designed to for writing manpages
+Predoc is both a Markdown flavour specifically designed for writing manpages
 and a command-line tool for converting a Predoc document into a manpage written
 in mdoc.
 
