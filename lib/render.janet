@@ -193,11 +193,12 @@
       (set subsection v)
       (buffer-line b ".Ss " v))))
 
-(defn- render-header [b node]
+(defn- render-prologue [b node]
   (def [title sec] (peg/match ~(* '(* :w (any (+ :w "-")))  "(" ':d+ ")") (get node :title)))
   (array/concat authors (string/split ", " (get node :authors)))
   (buffer-line b ".Dd " (get node :date))
-  (buffer-line b ".Dt " title " " sec))
+  (buffer-line b ".Dt " title " " sec)
+  (buffer-line b ".Os"))
 
 (defn- render-list-tag [b node]
   (ensure-nl b)
@@ -336,7 +337,7 @@
   (case (get node :type)
     # frontmatter
     :frontmatter
-    (render-header b node)
+    (render-prologue b node)
     # blocks
     :table-pipe
     (render-table-pipe b node)
