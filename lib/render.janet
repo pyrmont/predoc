@@ -34,8 +34,34 @@
   (def m (peg/match '(* '(some (set ".,:;?!")) (+ (set " \t") -1)) s start))
   (when m (first m)))
 
+(defn- parse-date [s]
+  (def months {"1" "January" "2" "February" "3" "March" "4" "April" "5" "May"
+               "6" "June" "7" "July" "8" "August" "9" "September" "10" "October"
+               "11" "November" "12" "December"})
+  (defn date-ymd [y m d]
+    (string (get months m) " " d ", " y))
+  (defn date-uk [d m y]
+    (string m " " d ", " y))
+  (defn date-us [m d y]
+    (string m " " d ", " y))
+  (def month-peg ['+ ; (values months)])
+  (try
+    (first
+      (peg/match ~{:main (+ :ymd :us :uk)
+                   :1-9 (* (? "0") '(range "19"))
+                   :year '(4 :d)
+                   :mon (+ :1-9 '"11" '"12")
+                   :day (+ '(* "3" (set "01")) '(* (set "12") :d) :1-9)
+                   :sep (set "-/")
+                   :ymd (/ (* :year :sep :mon :sep :day) ,date-ymd)
+                   :month (capture ,month-peg)
+                   :uk (/ (* :day " " :month (? ", ") :year) ,date-uk)
+                   :us (/ (* :month " " :day ", " :year ) ,date-us)} s))
+    ([e]
+     (error "could not parse date in frontmatter"))))
 
-# declare so in scope for render- functions
+# render function (forward declaration)
+
 (var- render nil)
 
 # independent render- functions
@@ -195,10 +221,12 @@
 
 (defn- render-prologue [b node]
   (def [title sec] (peg/match ~(* '(* :w (any (+ :w "-")))  "(" ':d+ ")") (get node :title)))
+  (def date (parse-date (get node :date)))
   (array/concat authors (string/split ", " (get node :authors)))
-  (buffer-line b ".Dd " (get node :date))
+  (buffer-line b ".Dd " date)
   (buffer-line b ".Dt " title " " sec)
-  (buffer-line b ".Os"))
+  (buffer-line b ".Os " (or (get node :os)
+                            (string (get node :project) " " (get node :version)))))
 
 (defn- render-list-tag [b node]
   (ensure-nl b)
