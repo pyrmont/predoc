@@ -1,42 +1,43 @@
 (import ../deps/argy-bargy/argy-bargy :as argy)
 (import ../init :as p)
 
-
 (def config
   ```
   The configuration for Argy-Bargy
   ```
-  {:rules [:name      {:help  "The name of the program."
+  {:rules [:input     {:help  "The path for the input file. (Default: stdin)"
+                       :proxy "path"}
+           "--name"   {:help  `The name of the program. If no name is provided,
+                              use the first part of the input path.`
+                       :kind  :single
                        :proxy "program"
-                       :req?  true}
-           :input     {:default :stdin
-                       :proxy   "path"
-                       :help    "The path for the input file."}
-           "--output" {:default :stdout
-                       :help    "The path for the output file."
-                       :kind    :single
-                       :proxy   "path"
-                       :short   "o"}
+                       :short "n"}
+           "--output" {:help  `The path for the output file. If no output path
+                              is provided but an input path is provided, use
+                              the input path (minus the file extension).
+                              Otherwise, use stdout. (Default: stdout)`
+                       :kind  :single
+                       :proxy "path"
+                       :short "o"}
            "-------------------------------------------"]
    :info {:about "Convert a document in Predoc to a manpage in mdoc."}})
-
 
 (defn run []
   (def parsed (argy/parse-args "predoc" config))
   (def err (parsed :err))
   (def help (parsed :help))
-
   (cond
+    # print help message
     (not (empty? help))
     (do
       (prin help)
       (os/exit (if (get-in parsed [:opts "help"]) 0 1)))
-
+    # print error message
     (not (empty? err))
     (do
       (eprin err)
       (os/exit 1))
-
+    # run command
     (do
       (def opts (parsed :opts))
       (def params (parsed :params))
@@ -44,12 +45,17 @@
       (def input (if (= :stdin i-path)
                    (file/read stdin :all)
                    (slurp i-path)))
-      (def name (params :name))
+      (def name (or (opts "name")
+                    (if (def end (string/find "." i-path))
+                      (string/slice i-path 0 end)
+                      "program")))
       (def output (p/predoc->mdoc name input))
-      (def o-path (opts "output"))
+      (def o-path (or (opts "output")
+                      (if (def pos (string/find "." (string/reverse i-path)))
+                        (string/slice i-path 0 (- -2 pos))
+                        :stdout)))
       (if (= :stdout o-path)
         (print output)
         (spit o-path output)))))
-
 
 (defn- main [& args] (run))
