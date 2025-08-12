@@ -1,5 +1,5 @@
 (import ../deps/argy-bargy/argy-bargy :as argy)
-(import ../init :as p)
+(import ../lib/predoc :as p)
 
 (def config
   ```
@@ -46,9 +46,15 @@
                    (file/read stdin :all)
                    (slurp i-path)))
       (def name (or (opts "name")
-                    (if (def end (string/find "." i-path))
-                      (string/slice i-path 0 end)
-                      "program")))
+                    (do
+                      (def len (length i-path))
+                      (def r-path (string/reverse i-path))
+                      (def begin (- len (or (string/find "/" r-path) len)))
+                      (def end (string/find "." i-path begin))
+                      (if (and begin end)
+                        (string/slice i-path begin end)
+                        "program"))
+                    ))
       (def output (p/predoc->mdoc name input))
       (def o-path (or (opts "output")
                       (if (def pos (string/find "." (string/reverse i-path)))

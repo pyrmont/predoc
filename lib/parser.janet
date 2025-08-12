@@ -10,120 +10,239 @@
     (calc-width (get value :value))
     (error "oops")))
 
-# make functions
+(defn- get-node-t [t]
+  (case t
+    :em* :emphasis
+    :em_ :emphasis
+    :st* :strong
+    :st_ :strong
+    t))
 
-(defn- make-arg-opt [name]
-  @{:type :arg
-    :kind :opt
-    :value name})
+(defn- match-delim [opens close]
+  (var i (length opens))
+  (while (def open (get opens (-- i)))
+    (when (and (= (first open) (first close))
+               (not= (get open 3) (get close 2)))
+      (put open 1 true)
+      (break)))
+  (if (= -1 i)
+    (if (nil? (get close 1))
+      :maybe
+      (array/clear close))
+    (do
+      (def stop (- (length opens) i))
+      (set i 1)
+      (while (< i stop)
+        (def open (array/pop opens))
+        (array/clear open)
+        (++ i))
+      (array/pop opens))))
 
-(defn- make-arg-param [name]
-  (def kind (if (= "..." name) :etc :param))
-  @{:type :arg
-    :kind kind
-    :value name})
+(defn- remove-keys [ks arr]
+  (each node arr
+    (when (table? node)
+      (each k ks
+        (put node k nil)
+        (remove-keys ks (get node :value))))))
 
-(defn- make-args [kind & captures]
-  (def args @[])
-  (var ns? false)
-  (each c captures
-    (when ns?
-      (put c :ns? true)
-      (set ns? false))
+(defn- match-delims [& args]
+  (def res @[])
+  (def s (last args))
+  (def matches (array/slice args 0 -2))
+  (def opens @[])
+  (each m matches
+    (if (array? m)
+      (if (nil? (get m 1))
+        (when (= :maybe (match-delim opens m))
+          (array/push opens m))
+        (if (get m 1)
+          (array/push opens m)
+          (match-delim opens m)))))
+  (each open opens
+    (array/clear open))
+  (var s-begin 0)
+  (var trail @[])
+  (var parent res)
+  (each m matches
     (cond
-      (table? c)
-      (array/push args c)
-      (= "|" c)
-      (array/push args @{:type :arg
-                         :kind :alt
-                         :value c})
-      (= :ns c)
-      (set ns? true)))
-  @{:type :args
-    :kind kind
-    :value args})
+      # delim
+      (array? m)
+      (unless (empty? m)
+        (def [d-type open? begin end] m)
+        (if (< s-begin begin)
+          (array/push parent (string/slice s s-begin begin)))
+        (set s-begin end)
+        (if open?
+          (do
+            (def node @{:type (get-node-t d-type) :value @[]})
+            (array/push parent node)
+            (array/push trail parent)
+            (set parent (get node :value)))
+          (do
+            (when (= :link d-type)
+              (array/insert parent 0 (string/slice s (+ 2 begin) (dec end))))
+            (array/pop trail)
+            (set parent (if (empty? trail) res (get (last trail) :value))))))
+      # node
+      (table? m)
+      (do
+        (def begin (get m :begin))
+        (def end (get m :end))
+        (if (< s-begin begin)
+          (array/push parent (string/slice s s-begin begin)))
+        (set s-begin end)
+        (array/push parent m))
+      ))
+  (if (< s-begin (length s))
+    (array/push res (string/slice s s-begin)))
+  (remove-keys [:begin :end] res)
+  res)
 
-(defn- make-em [text & args]
-  @{:type :emphasis
-    :value text})
-
-(defn- make-env-var [name]
-  @{:type :env-var
-    :value name})
-
-(defn- make-cmd [name]
-  @{:type :command
-    :value name})
-
-(defn- make-path [path]
-  @{:type :path
-    :value path})
-
-(defn- make-raw [text]
-  @{:type :verbatim
-    :value text})
-
-(defn- make-str [text]
-  @{:type :strong
-    :value text})
-
-(defn- make-xref-man [name sec]
-  @{:type :xref
-    :kind :manual
-    :value [name sec]})
-
-(defn- make-xref-sec [heading]
-  @{:type :xref
-    :kind :section
-    :value heading})
-
-(def- i-grammar*
-  ~{:main (* (some (+ :inline :plain)) -1)
+(def i-grammar*
+  ~{:main (/ '(* (any (+ :predoc :delim :raw :ch)) -1) ,match-delims)
     # helpers
     :ch (+ (* "\\" 1) 1)
     :hs " "
+    :hs* (any :hs)
     :hs+ (some :hs)
-    # inlines
-    :inline (+ :cmd :arg :ev :path :xref :em :str :raw)
-    # command
-    :cmd (/ (* "**" '(some (if-not "*" 1)) "**") ,make-cmd)
-    # arguments
-    :arg-o (/ (* "**" "-" '(some (if-not "**" :ch)) "**") ,make-arg-opt)
-    :arg-p (/ (* "_" '(some (if-not "_" :ch)) "_") ,make-arg-param)
-    :arg-i (+ (* :arg-o (constant :ns) (+ :args-o :arg-p))
-              (* :arg-o (some (* :hs+ (+ :args-o :arg-p))))
-              (* :arg-p (some (* :hs+ (+ :args-o :arg-p))))
-              :arg-o
-              :arg-p)
-    :args-a (/ (* (constant :alternate)
-                  (+ :args-o :arg-i)
-                  (some (* :hs+ '"|" :hs+ (+ :args-o :arg-i)))) ,make-args)
-    :args-o (/ (* (constant :optional) "[" (+  :arg-i) "]") ,make-args)
-    :arg (+ :args-a :args-o :arg-i)
+    :ws (+ :s -1)
+    :ds (+ "**" "__" "*" "_" "`")
+    :type (constant :type)
+    :kind (constant :kind)
+    :begin (constant :begin)
+    :end (constant :end)
+    :value (constant :value)
+    # predoc
+    :predoc (+ :cmd :args :arg :ev :path :xref)
+    # predoc: command
+    :cmd (/ (* :type (constant :command)
+               :begin ($)
+               "**"
+               :value (group '(* (+ :a (* "/" :a)) (any (+ :w (set "-_")))))
+               "**"
+               :end ($)) ,table)
+    # predoc: arguments
+    :args (+ :args-alt :args-opt :args-seq)
+    :args-alt (/ (* :type (constant :args)
+                    :kind (constant :alternate)
+                    :begin ($)
+                    :value (group (* (+ :args-opt :args-seq :arg)
+                                     (some (* :hs+ "|" :hs+ (+ :args-opt :args-seq :arg :arg-e)))))
+                    :end ($))
+                 ,table)
+    :args-opt (/ (* :type (constant :args)
+                    :kind (constant :optional)
+                    :begin ($)
+                    "[" :hs*
+                    :value (group (+ :args-alt :args-seq :arg :arg-e))
+                    :hs* "]"
+                    :end ($))
+                 ,table)
+    :args-seq (/ (* :type (constant :args)
+                    :kind (constant :sequence)
+                    :begin ($)
+                    :value (group (+ (* (+ (* :arg-o :args-opt) :arg)
+                                        (some (* ':hs :hs* (+ (* :arg-o :args-opt) :arg :arg-e))))
+                                     (* :arg-o :args-opt)))
+                    :end ($))
+                 ,table)
+    # predoc: argument
+    :arg (+ :arg-o :arg-p)
+    :arg-o (/ (* :type (constant :arg)
+                 :kind (constant :opt)
+                 :begin ($)
+                 "**-"
+                 :value (group '(some (if-not (set " *") 1)))
+                 "**"
+                 :end ($))
+              ,table)
+    :arg-p (/ (* :type (constant :arg)
+                 :kind (constant :param)
+                 :begin ($)
+                 "_"
+                 :value (group '(some (if-not (set " _") 1)))
+                 "_"
+                 :end ($))
+              ,table)
+    :arg-e (/ (* :type (constant :arg)
+                 :kind (constant :etc)
+                 :begin ($)
+                 :value (group '"...")
+                 :end ($))
+              ,table)
     # environment variable
-    :ev-s '(* (? "$") (range "AZ") (any (+ (range "AZ") "_")))
-    :ev (/ (* "`" :ev-s "`") ,make-env-var)
+    :ev (/ (* :type (constant :env-var)
+              :begin ($)
+              "`"
+              :value (group '(* (? "$") (range "AZ") (any (+ (range "AZ") "_"))))
+              "`"
+              :end ($)) ,table)
     # path
-    :path-s '(* (any (if-not (set "/`") 1)) "/" (any (if-not "`" 1)))
-    :path (/ (* "`" :path-s "`") ,make-path)
+    :path (/ (* :type (constant :path)
+                :begin ($)
+                "`"
+                :value (group '(* (any (if-not (set "/`") 1)) "/" (any (if-not "`" 1))))
+                "`"
+                :end ($)) ,table)
     # cross-references
-    :xref-m (/ (* '(* :w (to "(")) "(" ':d ")") ,make-xref-man)
-    :xref-s (/ (* "<" '(some (if-not ">" 1)) ">") ,make-xref-sec)
-    :xref (* "`" (+ :xref-m :xref-s) "`")
-    # emphasis text
-    :em (/ (* "*" '(some (if-not "*" (+ :str :ch))) "*") ,make-em)
-    # strong text
-    :str-a (* "**" '(some (if-not "**" (+ :em :ch))) "**")
-    :str-u (* "__" '(some (if-not "__" (+ :em :ch))) "__")
-    :str (/ (+ :str-a :str-u) ,make-str)
-    # verbatim text
-    :raw-d (at-least 1 "`")
-    :raw (/ (* :raw-d '(some (if-not :raw-d 1)) :raw-d) ,make-raw)
-    # plain text
-    :plain '(some (if-not :inline :ch))
+    :xref (/ (* :type (constant :xref)
+                (+ :xref-man :xref-sec)) ,table)
+    :xref-man (* :kind (constant :manual)
+                 :begin ($)
+                 "`"
+                 :value (group (* '(* :w (to "(")) "(" ':d ")"))
+                 "`"
+                 :end ($))
+    :xref-sec (* :kind (constant :section)
+                 :begin ($)
+                 "`<"
+                 :value (group '(some (if-not ">" 1)))
+                 ">`"
+                 :end ($))
+    # delims
+    :delim (group (+ :st-delim :em-delim :ln-delim))
+    # delims: strong
+    :st-delim (+ (* (constant :st*)
+                    (+ (* (constant false) ($) (> -1 (not :ws)) "**" (> 0 :ws))
+                       (* (constant true) ($) (> -1 :ws) "**" (> 0 (not :ws)))
+                       (* (constant nil) ($) "__"))
+                    ($))
+                 (* (constant :st_)
+                    (+ (* (constant false) ($) (> -1 (not :ws)) "__" (> 0 :ws))
+                       (* (constant true) ($) (> -1 :ws) "__" (> 0 (not :ws)))
+                       (* (constant nil) ($) "__"))
+                    ($)))
+    # delims: emphasis
+    :em-delim (+ (* (constant :em*)
+                    (+ (* (constant false) ($) (> -1 (not :ws)) "*" (> 0 :ws))
+                       (* (constant true) ($) (> -1 :ws) "*" (> 0 (not :ws)))
+                       (* (constant nil) ($) "*"))
+                    ($))
+                 (* (constant :em_)
+                    (+ (* (constant false) ($) (> -1 (not :ws)) "_" (> 0 :ws))
+                       (* (constant true) ($) (> -1 :ws) "_" (> 0 (not :ws)))
+                       (* (constant nil) ($) "_"))
+                    ($)))
+    # delims: links
+    :ln-delim (* (constant :link)
+                 (+ (* (constant true) ($) "[")
+                    (* (constant false) ($) (* "](" :ln-url ")")))
+                 ($))
+    :ln-paren (* "(" (any (if-not ")" :ln-url)) ")")
+    :ln-url (some (+ :ln-paren (if-not ")" :ch)))
+    # raw
+    :raw (/ (* :type (constant :raw)
+               :begin ($)
+               (only-tags (<- (some "`") :rd))
+               :value (group '(to (backmatch :rd)))
+               (backmatch :rd)
+               :end ($)) ,table)
     })
 
-(def- i-grammar (peg/compile i-grammar*))
+(def i-grammar (peg/compile i-grammar*))
+
+(defn parse-inlines [s]
+    )
 
 (defn- join [sep indent lines]
   (when (and (zero? indent) (one? lines))
@@ -144,7 +263,7 @@
   (string res))
 
 (defn- parse-inline [s]
-  (or (peg/match i-grammar s)
+  (or (first (peg/match i-grammar s))
       (error "invalid text")))
 
 (defn- make-code [indent & lines]

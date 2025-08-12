@@ -69,14 +69,12 @@
 (defn- render-arg [b node inline?]
   (def [macro value]
     (case (get node :kind)
-      :alt
-      [" " "|"]
-      :etc
-      ["No " "..."]
       :opt
-      ["Fl " (get node :value)]
+      ["Fl " (first (get node :value))]
       :param
-      ["Ar " (get node :value)]))
+      ["Ar " (first (get node :value))]
+      :etc
+      ["No " "..."]))
   (if inline?
     (do
       (ensure-sp b)
@@ -86,7 +84,7 @@
       (buffer-line b "." macro value))))
 
 (defn- render-oneliner [b s]
-  (buffer-line b ".Nd" (string/slice s 2)))
+  (buffer-line b ".Nd" (string/slice s 3)))
 
 (defn- render-string [b s &opt inline?]
   (var i 0)
@@ -130,13 +128,18 @@
     (if inline?
       (buffer/push b "Oo")
       (buffer/push b "Op")))
+  (var no-space? false)
   (each arg (get node :value)
-    (when (get arg :ns?)
+    (if (and no-space? (not (string? arg)))
       (buffer/push b " Ns"))
-    (case (get arg :type)
-      :arg
+    (when (= :sequence (get node :kind))
+      (set no-space? (not (string? arg))))
+    (cond
+      (string? arg)
+      (buffer/push b " " arg)
+      (= :arg (get arg :type))
       (render-arg b arg true)
-      :args
+      (= :args (get arg :type))
       (render-args b arg true)))
   (when an-optional?
     (if inline?
@@ -167,7 +170,7 @@
   (set needs-pp? true))
 
 (defn- render-command [b node &opt inline?]
-  (def name (get node :value))
+  (def name (first (get node :value)))
   (if (= progname name)
     (do
      (ensure-nl b)
@@ -361,7 +364,7 @@
 (varfn render [b node &opt inline?]
   (def para-break? needs-pp?)
   (set needs-pp? false)
-  (def v (get node :value))
+  (def v (first (get node :value)))
   (case (get node :type)
     # frontmatter
     :frontmatter
