@@ -1,5 +1,5 @@
 (import ./parser :as p)
-(import ./render :as r)
+(import ./renderer :as r)
 
 (defn predoc->mdoc [program predoc]
   (def root (-?> (peg/match p/grammar predoc) first))
