@@ -96,8 +96,8 @@
       (def macro (get {po "Po" pc "Pc" bo "Bo" bc "Bc"} ch))
       (if macro
         (do
-					(ensure-nl b)
-					(buffer-line b "." macro))
+          (ensure-nl b)
+          (buffer-line b "." macro))
         (cond
           (and (= mi ch) (zero? i) (ending-nl? b))
           (do
