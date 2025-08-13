@@ -84,7 +84,7 @@
       (buffer-line b "." macro value))))
 
 (defn- render-oneliner [b s]
-  (buffer-line b ".Nd" (string/slice s 3)))
+  (buffer-line b ".Nd" (string/slice s 2)))
 
 (defn- render-string [b s &opt inline?]
   (var i 0)
@@ -136,7 +136,7 @@
       (set no-space? (not (string? arg))))
     (cond
       (string? arg)
-      (buffer/push b " " arg)
+      (buffer/push b arg)
       (= :arg (get arg :type))
       (render-arg b arg true)
       (= :args (get arg :type))
