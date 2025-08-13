@@ -62,7 +62,8 @@
     (array/clear open))
   (var s-begin 0)
   (var trail @[])
-  (var parent res)
+  (var parent @{:value res})
+  (var siblings res)
   (each m matches
     (cond
       # delim
@@ -70,35 +71,35 @@
       (unless (empty? m)
         (def [d-type open? begin end] m)
         (if (< s-begin begin)
-          (array/push parent (string/slice s s-begin begin)))
+          (array/push siblings (string/slice s s-begin begin)))
         (set s-begin end)
         (if open?
           (do
-            (def node @{:type (get-node-t d-type) :value @[]})
-            (array/push parent node)
             (array/push trail parent)
-            (set parent (get node :value)))
+            (set parent @{:type (get-node-t d-type) :value @[]})
+            (array/push siblings parent)
+            (set siblings (get parent :value)))
           (do
             (when (= :link d-type)
-              (array/insert parent 0 (string/slice s (+ 2 begin) (dec end))))
-            (array/pop trail)
-            (set parent (if (empty? trail) res (get (last trail) :value))))))
+              (array/insert siblings 0 (string/slice s (+ 2 begin) (dec end))))
+            (set parent (array/pop trail))
+            (set siblings (get parent :value)))))
       # node
       (table? m)
       (do
         (def begin (get m :begin))
         (def end (get m :end))
         (if (< s-begin begin)
-          (array/push parent (string/slice s s-begin begin)))
+          (array/push siblings (string/slice s s-begin begin)))
         (set s-begin end)
-        (array/push parent m))
+        (array/push siblings m))
       ))
   (if (< s-begin (length s))
     (array/push res (string/slice s s-begin)))
   (remove-keys [:begin :end] res)
   res)
 
-(def i-grammar*
+(def- i-grammar*
   ~{:main (/ '(* (any (+ :predoc :delim :ln :raw :ch)) -1) ,match-delims)
     # helpers
     :ch (+ (* "\\" 1) 1)
@@ -118,7 +119,7 @@
     :cmd (/ (* :type (constant :command)
                :begin ($)
                "**"
-               :value (group '(some (if-not "*" 1)))
+               :value (group '(* (if-not (set "-*") 1) (any (if-not "*" 1))))
                "**"
                :end ($)) ,table)
     # predoc: arguments
