@@ -99,7 +99,7 @@
   res)
 
 (def i-grammar*
-  ~{:main (/ '(* (any (+ :predoc :delim :raw :ch)) -1) ,match-delims)
+  ~{:main (/ '(* (any (+ :predoc :delim :ln :raw :ch)) -1) ,match-delims)
     # helpers
     :ch (+ (* "\\" 1) 1)
     :hs " "
@@ -118,7 +118,7 @@
     :cmd (/ (* :type (constant :command)
                :begin ($)
                "**"
-               :value (group '(* (+ :a (* "/" :a)) (any (+ :w (set "-_")))))
+               :value (group '(some (if-not "*" 1)))
                "**"
                :end ($)) ,table)
     # predoc: arguments
@@ -230,6 +230,13 @@
                  ($))
     :ln-paren (* "(" (any (if-not ")" :ln-url)) ")")
     :ln-url (some (+ :ln-paren (if-not ")" :ch)))
+    # link
+    :ln (/ (* :type (constant :link)
+              :begin ($)
+              "<"
+              :value (group '(* (thru "://") (to ">")))
+              ">"
+              :end ($)) ,table)
     # raw
     :raw (/ (* :type (constant :raw)
                :begin ($)

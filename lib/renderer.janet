@@ -222,14 +222,14 @@
       (set subsection v)
       (buffer-line b ".Ss " v))))
 
-(defn- render-prologue [b node]
-  (def [title sec] (peg/match ~(* '(* :w (any (+ :w "-")))  "(" ':d+ ")") (get node :title)))
-  (def date (parse-date (get node :date)))
-  (array/concat authors (string/split ", " (get node :authors)))
-  (buffer-line b ".Dd " date)
-  (buffer-line b ".Dt " title " " sec)
-  (buffer-line b ".Os " (or (get node :os)
-                            (string (get node :project) " " (get node :version)))))
+(defn- render-link [b node &opt inline?]
+  (def args (get node :value))
+  (ensure-nl b)
+  (buffer/push b ".Lk ")
+  (buffer/push b (get args 0))
+  (if (get args 1)
+    (buffer/push b " \"" (get args 1) "\""))
+  (buffer/push b nl))
 
 (defn- render-list-tag [b node]
   (ensure-nl b)
@@ -290,6 +290,42 @@
       (render b v)))
   (set needs-pp? true))
 
+(defn- render-path [b s &opt inline?]
+  (if inline?
+    (do
+      (ensure-sp b)
+      (buffer/push b "Pa " s))
+    (do
+      (ensure-nl b)
+      (buffer-line b ".Pa " s))))
+
+(defn- render-strong [b s &opt inline?]
+  (if inline?
+    (do
+      (ensure-sp b)
+      (buffer/push b "Sy \"" s "\""))
+    (do
+      (ensure-nl b)
+      (buffer-line b ".Sy \"" s "\""))))
+
+(defn- render-prologue [b node]
+  (def [title sec] (peg/match ~(* '(* :w (any (+ :w "-")))  "(" ':d+ ")") (get node :title)))
+  (def date (parse-date (get node :date)))
+  (array/concat authors (string/split ", " (get node :authors)))
+  (buffer-line b ".Dd " date)
+  (buffer-line b ".Dt " title " " sec)
+  (buffer-line b ".Os " (or (get node :os)
+                            (string (get node :project) " " (get node :version)))))
+
+(defn- render-raw [b s &opt inline?]
+  (if inline?
+    (do
+      (ensure-sp b)
+      (buffer/push b "Ql \"" s "\""))
+    (do
+      (ensure-nl b)
+      (buffer-line b ".Ql \"" s "\""))))
+
 (defn- render-table-pipe [b node]
   (ensure-nl b)
   (buffer/push b ".Bl -column")
@@ -313,33 +349,6 @@
   (ensure-nl b)
   (buffer-line b ".El")
   (set needs-pp? true))
-
-(defn- render-path [b s &opt inline?]
-  (if inline?
-    (do
-      (ensure-sp b)
-      (buffer/push b "Pa " s))
-    (do
-      (ensure-nl b)
-      (buffer-line b ".Pa " s))))
-
-(defn- render-strong [b s &opt inline?]
-  (if inline?
-    (do
-      (ensure-sp b)
-      (buffer/push b "Sy \"" s "\""))
-    (do
-      (ensure-nl b)
-      (buffer-line b ".Sy \"" s "\""))))
-
-(defn- render-verbatim [b s &opt inline?]
-  (if inline?
-    (do
-      (ensure-sp b)
-      (buffer/push b "Ql \"" s "\""))
-    (do
-      (ensure-nl b)
-      (buffer-line b ".Ql \"" s "\""))))
 
 (defn- render-xref [b node &opt inline?]
   (def v (get node :value))
@@ -391,15 +400,17 @@
     (render-emphasis b v inline?)
     :env-var
     (render-env-var b v inline?)
+    :link
+    (render-link b node inline?)
     :path
     (render-path b v inline?)
+    :raw
+    (render-raw b v inline?)
     :strong
     (render-strong b v inline?)
     :xref
     (render-xref b node inline?)
-    :verbatim
-    (render-verbatim b v inline?)
-    #error
+    (error (string (get node :type) " not implemented"))
     ))
 
 (defn- add-note [b]
