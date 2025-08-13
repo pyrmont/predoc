@@ -61,4 +61,4 @@ $ predoc --output example.1 --name example example.1.predoc
 BUGS
 ====
 
-Report issues on GitHub.
+Report issues at <https://github.com/pyrmont/predoc>.

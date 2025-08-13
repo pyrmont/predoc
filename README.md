@@ -69,7 +69,10 @@ which in turn is rendered by `man` into this:
 
 ## Installation
 
-Clone the repository into `./predoc` and run `janet --install predoc`.
+The `predoc` tool is written in [Janet][]. Clone the repository into `./predoc`
+and run `janet --install predoc`.
+
+[Janet]: https://janet-lang.org/
 
 ## Usage
 
