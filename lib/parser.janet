@@ -170,21 +170,21 @@
                  :value (group '"...")
                  :end ($))
               ,table)
-    # environment variable
+    # predoc: environment variable
     :ev (/ (* :type (constant :env-var)
               :begin ($)
               "`"
               :value (group '(* (? "$") (range "AZ") (any (+ (range "AZ") "_"))))
               "`"
               :end ($)) ,table)
-    # path
+    # predoc: path
     :path (/ (* :type (constant :path)
                 :begin ($)
                 "`"
                 :value (group '(* (any (if-not (set "/`") 1)) "/" (any (if-not "`" 1))))
                 "`"
                 :end ($)) ,table)
-    # cross-references
+    # predoc: cross-reference
     :xref (/ (* :type (constant :xref)
                 (+ :xref-man :xref-sec)) ,table)
     :xref-man (* :kind (constant :manual)
@@ -248,9 +248,6 @@
 
 (def i-grammar (peg/compile i-grammar*))
 
-(defn parse-inlines [s]
-    )
-
 (defn- join [sep indent lines]
   (when (and (zero? indent) (one? lines))
     (break (first lines)))
@@ -269,7 +266,7 @@
     (buffer/push res (string/slice line i)))
   (string res))
 
-(defn- parse-inline [s]
+(defn- parse-inlines [s]
   (or (first (peg/match i-grammar s))
       (error "invalid text")))
 
@@ -299,7 +296,7 @@
   (def para @{:type :paragraph
               :indent para-indent
               :value (-> (join " " para-indent lines)
-                         (parse-inline))})
+                         (parse-inlines))})
   @{:type :list-item
     :kind kind
     :hang para-indent
@@ -317,17 +314,17 @@
   @{:type :paragraph
     :indent indent
     :value (-> (join " " indent lines)
-               (parse-inline))})
+               (parse-inlines))})
 
 (defn- make-tag [indent marker firstl lines loose?]
   (def para-indent (+ indent (length marker)))
   (def proto @{:type :paragraph
                :indent para-indent
-               :value (parse-inline firstl)})
+               :value (parse-inlines firstl)})
   (def notes @{:type :paragraph
                :indent para-indent
                :value (-> (join " " para-indent lines)
-                          (parse-inline))})
+                          (parse-inlines))})
   @{:type :list-item
     :kind :tag
     :hang para-indent
@@ -350,7 +347,7 @@
     (while (def cell (get line j))
       (def value @{:type :paragraph
                    :indent 0
-                   :value (parse-inline cell)})
+                   :value (parse-inlines cell)})
       (def cw (calc-width value))
       (def mw (get widths j 0))
       (when (> cw mw)
