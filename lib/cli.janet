@@ -1,5 +1,5 @@
 (import ../deps/argy-bargy/argy-bargy :as argy)
-(import ../lib/predoc :as p)
+(import ./predoc :as p)
 
 (def config
   ```
