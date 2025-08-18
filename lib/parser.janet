@@ -396,7 +396,7 @@
         (break))
       # close parent if it's a list
       (if (= :list (get parent :type))
-       (close-list parent))
+        (close-list parent))
       # prepare to check next outer level
       (if (def outer (last trail))
         (do
