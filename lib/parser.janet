@@ -345,9 +345,11 @@
       (unless (= cols (length line))
         (error "columns must be equal across rows")))
     (array/push rows
-      (map (fn [x] @{:type :td
-                     :indent 0
-                     :value (parse-inlines (string/trim x))}) line)))
+                (map (fn [x]
+                       @{:type :td
+                         :indent 0
+                         :value (parse-inlines (string/trim x))})
+                     line)))
   @{:type :table
     :indent indent
     :cols cols
