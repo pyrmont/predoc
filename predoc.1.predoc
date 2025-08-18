@@ -48,9 +48,9 @@ EXAMPLES
 
 Convert a Predoc document for a program called **example** to an mdoc manpage:
 
-`````
+````
 $ predoc example.1.predoc
-`````
+````
 
 Or with values set explicitly:
 
