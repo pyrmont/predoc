@@ -146,7 +146,7 @@
                     :kind (constant :sequence)
                     :begin ($)
                     :value (group (+ (* (+ (* :arg-o :args-opt) :arg)
-                                        (some (* ':hs :hs* (+ (* :arg-o :args-opt) :arg :arg-e))))
+                                        (some (* '(+ "=" :hs) :hs* (+ (* :arg-o :args-opt) :arg :arg-e))))
                                      (* :arg-o :args-opt)))
                     :end ($))
                  ,table)
@@ -156,7 +156,7 @@
                  :kind (constant :opt)
                  :begin ($)
                  "**-"
-                 :value (group '(some (if-not (set " *") 1)))
+                 :value (group '(some (if-not "*" 1)))
                  "**"
                  :end ($))
               ,table)
@@ -164,7 +164,7 @@
                  :kind (constant :param)
                  :begin ($)
                  "_"
-                 :value (group '(some (if-not (set " _") 1)))
+                 :value (group '(some (if-not "_" 1)))
                  "_"
                  :end ($))
               ,table)
