@@ -39,10 +39,10 @@ jobs:
       run: mkdir -p $PREFIX
       shell: bash
     - name: "download janet"
-      run: curl -LO https://github.com/janet-lang/janet/releases/download/${{ steps.janet-ver.outputs.tag }}/janet-${{ steps.janet-ver.outputs.tag }}-${{ inputs.os }}-x64.tar.gz
+      run: curl -LO https://github.com/janet-lang/janet/releases/download/${{ steps.janet-ver.outputs.tag }}/janet-${{ steps.janet-ver.outputs.tag }}-linux-x64.tar.gz
       shell: bash
     - name: "extract janet"
-      run: tar -xzf janet-${{ steps.janet-ver.outputs.tag }}-${{ inputs.os }}-x64.tar.gz --strip-components=2 -C $PREFIX
+      run: tar -xzf janet-${{ steps.janet-ver.outputs.tag }}-linux.x64.tar.gz --strip-components=2 -C $PREFIX
       shell: bash
     - name: "return to workspace directory"
       run: cd $GITHUB_WORKSPACE
