@@ -1,5 +1,7 @@
 # Predoc
 
+[![Build Status](https://github.com/pyrmont/predoc/workflows/build/badge.svg)](https://github.com/pyrmont/lemongrass/actions?query=workflow%3Abuild)
+
 Predoc is both a Markdown flavour specifically designed for writing manpages
 and a command-line tool for converting a Predoc document into a manpage written
 in mdoc.
