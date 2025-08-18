@@ -57,24 +57,14 @@
   (case (type value)
     :array
     (render-indexed b value)
-    :buffer
-    (render-other b value)
-    :keyword
-    (render-other b value)
-    :number
-    (render-other b value)
-    :string
-    (render-other b value)
     :struct
     (render-indexed b value true)
-    :symbol
-    (render-other b value)
     :table
     (render-dictionary b value)
     :tuple
     (render-indexed b value true)
-    # oh no
-    (error (string/format "unrecognised type %s" (type value)))))
+    # default
+    (render-other b value)))
 
 (defn render-doc [root]
   (def b @"")
