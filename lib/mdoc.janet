@@ -304,7 +304,9 @@
                             (string (get fm :project) " " (get fm :version)))))
 
 (defn- render-raw [b s]
-  (buffer-line b ".Ql \"" s "\""))
+  (buffer-line b ".Eo \\(oq")
+  (buffer-line b ".No " s)
+  (buffer-line b ".Ec \\(cq\\c"))
 
 (defn- render-table [b node]
   (buffer/push b ".Bl -column")
