@@ -1,8 +1,15 @@
 (import ./parser :as p)
-(import ./mdoc :as m)
+(import ./mdoc)
+(import ./jdn)
+
+(defn predoc->ast [predoc]
+  (def root (-?> (peg/match p/grammar predoc) first))
+  (or root (error "could not parse input")))
+
+(defn predoc->jdn [predoc]
+  (->> (predoc->ast predoc)
+       (jdn/render-doc)))
 
 (defn predoc->mdoc [program predoc]
-  (def root (-?> (peg/match p/grammar predoc) first))
-  (unless root
-    (error "could not parse input"))
-  (m/render-doc program root))
+  (->> (predoc->ast predoc)
+       (mdoc/render-doc program)))
