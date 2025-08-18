@@ -204,7 +204,7 @@
     :xref-sec (* :kind (constant :section)
                  :begin ($)
                  "`<"
-                 :value (group '(some (if-not ">" 1)))
+                 :value (group '(* (! ">") (to ">")))
                  ">`"
                  :end ($))
     # delims

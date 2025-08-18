@@ -100,7 +100,9 @@
       ["Ar " (first (get node :value))]
       :etc
       ["No " "..."]))
-  (buffer-line b "." macro value))
+  (buffer-line b ".Eo")
+  (buffer-line b "." macro value)
+  (buffer-line b ".Ec"))
 
 (defn- render-oneliner [b s]
   (buffer-line b ".Nd" (string/slice s 2)))
@@ -113,7 +115,7 @@
     (when delim
       (when (ending-nl? b)
         (buffer/popn b 1)
-        (buffer/push b " "))
+        (buffer/push b "\\c"))
       (buffer-line b delim)
       (set i (+ i (length delim))))
     (when (def ch (get s i))
@@ -227,7 +229,9 @@
   (buffer/push b nl))
 
 (defn- render-list-tag [b node]
-  (buffer-line b ".Bl -tag -width Ds" (if (get node :loose?) "" " -compact"))
+  (def loose? (get node :loose?))
+  (buffer-line b ".Pp")
+  (buffer-line b ".Bl -tag -width Ds" (if loose? "" " -compact"))
   (each item (get node :value)
     (buffer-line b ".It Xo")
     (set needs-pp? false)
@@ -247,11 +251,13 @@
   (set needs-pp? true))
 
 (defn- render-list-other [b node]
+  (def loose? (get node :loose?))
+  (buffer-line b ".Pp")
   (cond
     (= :ol (get node :kind))
-    (buffer-line b ".Bl -enum")
+    (buffer-line b ".Bl -enum" (if loose? "" " -compact"))
     (= :ul (get node :kind))
-    (buffer-line b ".Bl -dash"))
+    (buffer-line b ".Bl -dash" (if loose? "" " -compact")))
   (each item (get node :value)
     (buffer-line b ".It")
     (set needs-pp? false)
@@ -305,8 +311,8 @@
 
 (defn- render-raw [b s]
   (buffer-line b ".Eo \\(oq")
-  (buffer-line b ".No " s)
-  (buffer-line b ".Ec \\(cq\\c"))
+  (buffer-line b ".No \"" s "\"")
+  (buffer-line b ".Ec \\(cq"))
 
 (defn- render-table [b node]
   (buffer/push b ".Bl -column")
@@ -343,9 +349,10 @@
   (def v (get node :value))
   (case (get node :kind)
     :manual
-    (buffer-line b ".Xr " (get v 0) " " (get v 1))
+    (do
+     (buffer-line b ".Eo") (buffer-line b ".Xr " (get v 0) " " (get v 1)) (buffer-line b ".Ec"))
     :section
-    (buffer-line b ".Sx \"" v "\"")))
+    (buffer-line b ".Sx \"" (get v 0) "\"")))
 
 (varfn render [b node]
   (def para-break? needs-pp?)
