@@ -37,7 +37,13 @@
     foo* *bar
     ```)
   (def expect4 ["foo* *bar"])
-  (is (== expect4 (parse-inlines input4))))
+  (is (== expect4 (parse-inlines input4)))
+  (def input5
+    ```
+    \\*foo*
+    ```)
+  (def expect5 ["\\\\" {:type :emphasis :value ["foo"]}])
+  (is (== expect5 (parse-inlines input5))))
 
 (deftest inline-st
   (def input1

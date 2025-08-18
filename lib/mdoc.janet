@@ -6,6 +6,7 @@
 (def- pc 41)
 (def- mi 45)
 (def- bo 91)
+(def- bs 92)
 (def- bc 93)
 
 (def- authors @[])
@@ -123,12 +124,20 @@
           (ensure-nl b)
           (buffer-line b "." macro))
         (cond
+          # backslash
+          (and (= bs ch) (= bs (get s (inc i))))
+          (do
+            (++ i)
+            (buffer/push b "\\e"))
+          # hyphen
           (and (= mi ch) (zero? i) (ending-nl? b))
           (do
             (buffer/popn b 1)
             (buffer/push b " Ns -"))
+          # spaces at end of lines
           (and (= sp ch) (ending-nl? b))
-          nil # do nothing
+          nil
+          # default
           (buffer/push b ch))))
     (++ i))
   (ensure-nl b))
@@ -185,7 +194,11 @@
     (buffer-line b ".Ic " name)))
 
 (defn- render-emphasis [b s]
-  (buffer-line b ".Em " s))
+  (buffer/popn b 1)
+  (buffer/push b "\\c\n")
+  (buffer-line b ".Bf Em")
+  (render-string b s)
+  (buffer-line b ".Ef"))
 
 (defn- render-env-var [b s]
   (buffer-line b ".Ev " s))
@@ -275,7 +288,11 @@
   (buffer-line b ".Pa " s))
 
 (defn- render-strong [b s]
-  (buffer-line b ".Sy \"" s "\""))
+  (buffer/popn b 1)
+  (buffer/push b "\\c\n")
+  (buffer-line b ".Bf Sy")
+  (render-string b s)
+  (buffer-line b ".Ef"))
 
 (defn- render-prologue [b node]
   (def fm (get node :value))

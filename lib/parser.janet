@@ -21,6 +21,10 @@
 (defn- match-delim [opens close]
   (var i (length opens))
   (while (def open (get opens (-- i)))
+    # check if open delimiter matches
+    # match should be of the same type (first check)
+    # and delimiters should not be immediately next
+    # to each other
     (when (and (= (first open) (first close))
                (not= (get open 3) (get close 2)))
       (put open 1 true)
@@ -104,7 +108,7 @@
     # helpers
     :t (constant true)
     :f (constant false)
-    :ch (+ (* "\\" 1) 1)
+    :ch (+ (* "\\" (set "\\`*_{}[]()#+-.!")) 1)
     :hs " "
     :hs* (any :hs)
     :hs+ (some :hs)
