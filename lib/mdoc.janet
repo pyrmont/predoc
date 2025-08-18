@@ -24,6 +24,28 @@
 (defn- buffer-line [b & text]
   (buffer/push b ;text nl))
 
+(defn- calc-width [v]
+  (case (type v)
+    # string
+    :string
+    (length v)
+    # array
+    :array
+    (do
+      (var w 0)
+      (var first? true)
+      (each el v
+        (if first?
+          (set first? false)
+          (+= w 1))
+        (+= w (calc-width el)))
+      w)
+    # table
+    :table
+    (calc-width (get v :value))
+    # impossible
+    (error "invalid type")))
+
 (defn- ending-nl? [b]
   (= nl (last b)))
 
@@ -61,9 +83,11 @@
     ([e]
      (error "could not parse date in frontmatter"))))
 
+# dependent helpers
+
 # render function (forward declaration)
 
-(var- render nil)
+(varfn render [b node] nil)
 
 # independent render- functions
 
@@ -108,8 +132,6 @@
           (buffer/push b ch))))
     (++ i))
   (ensure-nl b))
-
-# dependent render- functions
 
 (defn- render-args [b node]
   (def an-optional? (= :optional (get node :kind)))
@@ -168,7 +190,7 @@
 
 (defn- render-h [b node]
   (buffer-line b ".")
-  (def v (get node :value))
+  (def v (string/join (get node :value) " "))
   (case (get node :level)
     1
     (do
@@ -226,7 +248,7 @@
   (buffer-line b ".El"))
 
 (defn- render-list [b node]
-  (if (= :tag (get node :kind))
+  (if (= :tl (get node :kind))
     (render-list-tag b node)
     (render-list-other b node)))
 
@@ -254,23 +276,33 @@
   (buffer-line b ".Sy \"" s "\""))
 
 (defn- render-prologue [b node]
-  (def [title sec] (peg/match ~(* '(* :w (any (+ :w "-")))  "(" ':d+ ")") (get node :title)))
-  (def date (parse-date (get node :date)))
-  (array/concat authors (string/split ", " (get node :authors)))
+  (def fm (get node :value))
+  (def [title sec] (peg/match ~(* '(* :w (any (+ :w "-")))  "(" ':d+ ")") (get fm :title)))
+  (def date (parse-date (get fm :date)))
+  (array/concat authors (string/split ", " (get fm :authors)))
   (buffer-line b ".Dd " date)
   (buffer-line b ".Dt " title " " sec)
-  (buffer-line b ".Os " (or (get node :os)
-                            (string (get node :project) " " (get node :version)))))
+  (buffer-line b ".Os " (or (get fm :os)
+                            (string (get fm :project) " " (get fm :version)))))
 
 (defn- render-raw [b s]
   (buffer-line b ".Ql \"" s "\""))
 
-(defn- render-table-pipe [b node]
+(defn- render-table [b node]
   (buffer/push b ".Bl -column")
-  (each w (get node :widths)
+  (def [header rows] (get node :value))
+  (def widths (array/new-filled (get node :cols) 0))
+  (each row rows
+    (var i 0)
+    (while (def cell (get row i))
+      (def width (calc-width cell))
+      (if (< (get widths i) width)
+        (put widths i width))
+      (++ i)))
+  (each w widths
     (buffer/push b " \"" (string/repeat " " w) "\""))
   (buffer/push b nl)
-  (each row (get node :value)
+  (each row rows
     (buffer-line b ".It Xo")
     (var first? true)
     (each cell row
@@ -304,8 +336,8 @@
     :frontmatter
     (render-prologue b node)
     # blocks
-    :table-pipe
-    (render-table-pipe b node)
+    :table
+    (render-table b node)
     :code
     (render-code b node)
     :heading

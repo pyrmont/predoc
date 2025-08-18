@@ -249,7 +249,7 @@
 
 (def i-grammar (peg/compile i-grammar*))
 
-(defn- join [sep indent lines]
+(defn- join [sep indent lines &opt no-trim?]
   (when (and (zero? indent) (one? lines))
     (break (first lines)))
   (def res @"")
@@ -258,13 +258,15 @@
     (if first?
       (set first? false)
       (buffer/push res sep))
-    (var i -1)
-    (while (def c (get line (++ i)))
-      (unless (= 32 c)
-        (break))
-      (if (= indent i)
-        (break)))
-    (buffer/push res (string/slice line i)))
+    (if (not no-trim?)
+      (buffer/push res (string/trim line))
+      (do
+        (var i 0)
+        (while (def c (get line i))
+          (unless (= 32 c) (break))
+          (if (= indent i) (break))
+          (++ i))
+        (buffer/push res (string/slice line i)))))
   (string res))
 
 (defn- parse-inlines [s]
@@ -274,24 +276,23 @@
 (defn- make-code [indent & lines]
   @{:type :code
     :indent indent
-    :value (join "\n" indent lines)})
+    :value (join "\n" indent lines true)})
 
 (defn- make-fm [& keyvals]
-  (def res @{:type :frontmatter
-             :indent 0})
-  (var i -1)
-  (while (def k (get keyvals (++ i)))
-    (def v (get keyvals (++ i)))
-    (put res (keyword (string/ascii-lower k)) v))
-  res)
+  (def value @{})
+  (each [k v] (partition 2 keyvals)
+    (put value (keyword (string/ascii-lower k)) v))
+  @{:type :frontmatter
+    :indent 0
+    :value value})
 
 (defn- make-h [indent line divider]
   @{:type :heading
     :indent indent
     :level (if (= "=" divider) 1 2)
-    :value line})
+    :value (parse-inlines line)})
 
-(defn- make-li [indent marker & lines]
+(defn- make-li [loose? indent marker lines]
   (def kind (get {42 :ul 45 :ul} (first marker) :ol))
   (def para-indent (+ indent (length marker)))
   (def para @{:type :paragraph
@@ -302,13 +303,15 @@
     :kind kind
     :hang para-indent
     :indent indent
+    :loose? loose?
     :value @[para]})
 
 (defn- make-list [child]
+  (put child :loose? nil)
   @{:type :list
     :kind (get child :kind)
     :indent (get child :indent)
-    :loose? (get child :loose?)
+    :loose? false
     :value @[child]})
 
 (defn- make-para [indent & lines]
@@ -317,54 +320,49 @@
     :value (-> (join " " indent lines)
                (parse-inlines))})
 
-(defn- make-tag [indent marker firstl lines loose?]
+(defn- make-ti [loose? indent marker f-line lines]
   (def para-indent (+ indent (length marker)))
-  (def proto @{:type :paragraph
-               :indent para-indent
-               :value (parse-inlines firstl)})
-  (def notes @{:type :paragraph
-               :indent para-indent
-               :value (-> (join " " para-indent lines)
-                          (parse-inlines))})
+  (def tag @{:type :paragraph
+             :indent para-indent
+             :value (parse-inlines f-line)})
+  (def body @{:type :paragraph
+              :indent para-indent
+              :value (-> (join " " para-indent lines)
+                         (parse-inlines))})
   @{:type :list-item
-    :kind :tag
+    :kind :tl
     :hang para-indent
     :indent indent
     :loose? loose?
-    :value @[proto notes]})
+    :value @[tag body]})
 
-(defn- make-tbl [indent & lines]
+(defn- make-tblp [indent & lines]
   (def rows @[])
   (var cols nil)
-  (var widths @[])
-  (var i 0)
-  (while (def line (get lines i))
-    (unless (= cols (length line))
-      (unless (nil? cols)
-        (error (string "unequal number of cells in row " (inc i))))
-      (set cols (length line)))
-    (var row @[])
-    (var j 0)
-    (while (def cell (get line j))
-      (def value @{:type :paragraph
-                   :indent 0
-                   :value (parse-inlines cell)})
-      (def cw (calc-width value))
-      (def mw (get widths j 0))
-      (when (> cw mw)
-        (put widths j cw))
-      (array/push row value)
-      (++ j))
-    (array/push rows row)
-    (++ i))
-  @{:type :table-pipe
+  (each line lines
+    (if (nil? cols)
+      (set cols (length line))
+      (unless (= cols (length line))
+        (error "columns must be equal across rows")))
+    (array/push rows
+      (map (fn [x] @{:type :td
+                     :indent 0
+                     :value (parse-inlines (string/trim x))}) line)))
+  @{:type :table
     :indent indent
     :cols cols
-    :widths widths
-    :value rows})
+    :value @[nil rows]})
 
 (defn- nest-blocks [& nodes]
   (def res @[])
+  (defn close-list [list]
+    (def children (get list :value))
+    (var i 0)
+    (while (def child (get children i))
+      (if (get child :loose?)
+        (put list :loose? true))
+      (put child :loose? nil)
+      (++ i)))
   (var siblings res)
   (var indent 0)
   (def trail @[])
@@ -380,91 +378,91 @@
           (array/push siblings new-list)
           (array/push trail new-list)
           (set siblings (get n :value))
-          (set indent (+ n-indent (get n :hang)))
+          (set indent (get n :hang))
           (break))
         (array/push siblings n)
         (break))
       # node is indented < last node
-      (def list (array/pop trail))
-      (if (= :list-item n-type)
-        # node is a child of list
-        (when (<= (get list :indent) n-indent)
-          (array/push (get list :value) n)
-          (array/push trail list)
-          (set siblings (get n :value))
-          (set indent (+ n-indent (get n :hang)))
-          (break)))
-      # check whether list has any loose children
-      (def children (get list :value))
-      (var i 0)
-      (while (def child (get children i))
-        # last one doesn't count
-        (if (and (not= (++ i) (length children))
-                 (get child :loose?))
-          (put list :loose? true))
-        (put child :loose? nil))
+      (def parent (array/pop trail))
+      # node is a child of the parent
+      (when (and (= :list-item n-type)
+                 (= :list (get parent :type))
+                 (= (get parent :kind) (get n :kind))
+                 (<= (get parent :indent) n-indent))
+        (array/push trail parent)
+        (array/push (get parent :value) n)
+        (set siblings (get n :value))
+        (set indent (get n :hang))
+        (break))
+      # close parent if it's a list
+      (if (= :list (get parent :type))
+       (close-list parent))
       # prepare to check next outer level
       (if (def outer (last trail))
         (do
           (def prev (last (get outer :value)))
           (set siblings (get prev :value))
-          (set indent (+ (get prev :indent) (get prev :hang))))
+          (set indent (get prev :hang))) # nodes that don't have :hang?
         (do
           (set siblings res)
           (set indent 0)))))
+  (if (= :list (get (last res) :type))
+    (close-list (last res)))
   res)
 
 (def grammar
-  ~{:main (/ (* (? :fm)
-                :block
-                (any (* (some :nl) (? :block))) -1) ,nest-blocks)
+  ~{:main (/ (* (? :fm) (? :block) (any (* (some :nl) (? :block))) :eof) ,nest-blocks)
     # helpers
+    :t (constant true)
+    :f (constant false)
     :nl "\n"
     :hs " "
+    :hs* (any :hs)
     :hs+ (some :hs)
     :eof -1
+    :eol (+ :nl :eof)
     :break (2 :nl)
-    :indent (/ '(any :hs) ,length)
-    :line (* '(some (if-not (+ :nl :eof) 1)) (? (if-not :break :nl)))
+    :indent (/ ':hs* ,length)
+    :line (* (! :eol) '(to :eol) (? (if-not :break :nl)))
+    :cont (if-not :block-m :line)
+    :cont+ (some :cont)
+    :loose? (+ (if (> -2 :break) :t) :f)
     # front matter
     :fm (/ (* (at-least 3 "-")
               (some (* :nl ':w+ ": " '(to :nl))) :nl
-              (at-least 3 "-") (some :nl)) ,make-fm)
+              (at-least 3 "-")) ,make-fm)
     # blocks
-    :block (+ :tbl :code :h :tag :li :para)
-    # table
-    :tbl-o (* (3 "`") :nl (at-least 3 (+ "-" "|")))
-    :tbl-c (* (? (* (at-least 3 (+ "-" "|")) :nl)) (3 "`"))
-    :tbl-cd " | "
-    :tbl-cc (* '(some (if-not (+ :tbl-cd :nl) 1)) (? :tbl-cd))
-    :tbl-r (group (* (? "| ")
-                     (some (if-not (+ :tbl-c :nl) :tbl-cc))
-                     (? " |")
-                     :nl))
-    :tbl (/ (* :indent :tbl-o :nl
-               (some :tbl-r)
-               :tbl-c) ,make-tbl)
+    :block (+ :tblp :code :ti :li :h :para)
+    :block-m (+ :pre-m :code-o :ti-m :li-m)
+    # predoc
+    :pre-m (* :hs* (3 "`"))
+    # pipe table
+    :tblp (/ (* :indent :tblp-o (some :tblp-tr) :tblp-c) ,make-tblp)
+    :tblp-o (* :pre-m :nl :hs* (at-least 3 (+ "-" "|")) :nl)
+    :tblp-c (* :hs* (at-least 3 (+ "-" "|")) :nl :pre-m)
+    :tblp-tr (group (* :tblp-tr-o (some :tblp-td) :tblp-tr-c))
+    :tblp-tr-o (* (! :tblp-c) :hs* (? "| "))
+    :tblp-tr-c (* (? " |") :nl)
+    :tblp-td (* (! :tblp-tr-c) '(to (+ :tblp-td-d :tblp-tr-c)) (? :tblp-td-d))
+    :tblp-td-d " | "
     # code
-    :code-f (* (any :hs) (at-least 4 "`"))
-    :code (/ (* :indent :code-f :nl
-                (some (if-not :code-f :line))
-                :code-f) ,make-code)
+    :code (/ (* :code-o
+                (any (if-not :code-c :line))
+                :code-c) ,make-code)
+    :code-o (* :indent (only-tags (<- (at-least 4 "`") :cf)) :nl)
+    :code-c (* :hs* (backmatch :cf))
+    # tag list item
+    :ti (some (/ (* :loose? :ti-m :ti-t (group :cont+)) ,make-ti))
+    :ti-m (* :indent '(* "-" :hs+))
+    :ti-t (* (! :ti-d) '(to :ti-d) :ti-d)
+    :ti-d (* ":" :nl)
+    # list item
+    :li (some (/ (* :loose? :li-m (group :cont+)) ,make-li))
+    :li-m (* :indent '(+ (* :d+ "." (some " ")) (* (set "-*") :hs+)))
     # heading
+    :h (/ (* :indent :line :h-l) ,make-h)
     :h-l (+ (* '"=" (at-least 2 "="))
             (* '"-" (at-least 2 "-")))
-    :h (/ (* :indent :line :h-l) ,make-h)
-    # tag item
-    :tag-m (* :indent '(* "-" :hs+))
-    :tag-d (* ":" :nl)
-    :tag-p (* '(some (if-not :tag-d 1)) :tag-d)
-    :tag (some (/ (* :tag-m
-                     :tag-p
-                     (group (some (if-not :tag-m :line)))
-                     (+ (if (> :nl) (constant true))
-                        (constant false))) ,make-tag))
-    # list item
-    :li-m (* :indent '(+ (* :d+ "." (some " ")) (* (set "-*") :hs+)))
-    :li (/ (* :li-m :line (any (if-not :li-m :line))) ,make-li)
     # para block
     :para (/ (* :indent (some :line)) ,make-para)
     })
