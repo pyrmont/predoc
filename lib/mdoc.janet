@@ -54,9 +54,8 @@
   (unless (ending-nl? b)
     (buffer/push b nl)))
 
-(defn- leading-delim [s start]
-  (def m (peg/match '(* '(some (set ".,:;?!")) (+ (set " \t") -1)) s start))
-  (when m (first m)))
+(defn- trailing-delim [s start]
+  (first (peg/match '(* '(some (set ".,:;?!)")) (+ (set " \t") -1)) s start)))
 
 (defn- parse-date [s]
   (def months {"1" "January" "2" "February" "3" "March" "4" "April" "5" "May"
@@ -110,7 +109,7 @@
   (var i 0)
   (def len (length s))
   (while (< i len)
-    (def delim (leading-delim s i))
+    (def delim (trailing-delim s i))
     (when delim
       (when (ending-nl? b)
         (buffer/popn b 1)
@@ -118,28 +117,26 @@
       (buffer-line b delim)
       (set i (+ i (length delim))))
     (when (def ch (get s i))
-      (def macro (get {po "Po" pc "Pc" bo "Bo" bc "Bc"} ch))
-      (if macro
+      (cond
+        # backslash
+        (and (= bs ch) (= bs (get s (inc i))))
         (do
-          (ensure-nl b)
-          (buffer-line b "." macro))
-        (cond
-          # backslash
-          (and (= bs ch) (= bs (get s (inc i))))
-          (do
-            (++ i)
-            (buffer/push b "\\e"))
-          # hyphen
-          (and (= mi ch) (zero? i) (ending-nl? b))
-          (do
-            (buffer/popn b 1)
-            (buffer/push b " Ns -"))
-          # spaces at end of lines
-          (and (= sp ch) (ending-nl? b))
-          nil
-          # default
-          (buffer/push b ch))))
+          (++ i)
+          (buffer/push b "\\e"))
+        # hyphen
+        (and (= mi ch) (zero? i) (ending-nl? b))
+        (do
+          (buffer/popn b 1)
+          (buffer/push b " Ns -"))
+        # spaces at end of lines
+        (and (= sp ch) (ending-nl? b))
+        nil
+        # default
+        (buffer/push b ch)))
     (++ i))
+  (def lastch (last b))
+  (if (or (= bo lastch) (= po lastch))
+    (buffer/push b "\\c"))
   (ensure-nl b))
 
 (defn- render-args [b node]
