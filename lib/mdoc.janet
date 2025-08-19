@@ -8,7 +8,6 @@
 (def- bo 91)
 (def- bs 92)
 (def- bc 93)
-(def- vb 124)
 
 (def- authors @[])
 
@@ -56,7 +55,7 @@
     (buffer/push b nl)))
 
 (defn- trailing-delim [s start]
-  (first (peg/match '(* '(some (set ".,:;?!)")) (+ (set " \t") -1)) s start)))
+  (peg/match '(* (some '(set ".,:;?!)")) (+ (set " \t") -1)) s start))
 
 (defn- parse-date [s]
   (def months {"1" "January" "2" "February" "3" "March" "4" "April" "5" "May"
@@ -110,13 +109,15 @@
   (var i 0)
   (def len (length s))
   (while (< i len)
-    (def delim (trailing-delim s i))
-    (when delim
-      (when (ending-nl? b)
-        (buffer/popn b 1)
-        (buffer/push b " "))
-      (buffer-line b delim)
-      (set i (+ i (length delim))))
+    (def delims (trailing-delim s i))
+    (when delims
+      (if (ending-nl? b)
+        (do
+          (buffer/popn b 1)
+          (buffer/push b " ")
+          (buffer-line b (string/join delims " ")))
+        (buffer-line b ;delims))
+      (set i (+ i (length delims))))
     (when (def ch (get s i))
       (cond
         # backslash
@@ -318,9 +319,9 @@
                             (string (get fm :project) " " (get fm :version)))))
 
 (defn- render-raw [b s]
-  (buffer-line b ".Eo \\(oq")
-  (buffer-line b ".No \"" s "\"")
-  (buffer-line b ".Ec \\(cq\\c"))
+  (if (string/has-suffix? " " s)
+    (buffer-line b ".Ql \"" s "\"")
+    (buffer-line b ".Ql " s "\\&")))
 
 (defn- render-table [b node]
   (buffer/push b ".Bl -column")
@@ -357,8 +358,7 @@
   (def v (get node :value))
   (case (get node :kind)
     :manual
-    (do
-     (buffer-line b ".Eo") (buffer-line b ".Xr " (get v 0) " " (get v 1)) (buffer-line b ".Ec"))
+    (buffer-line b ".Xr " (get v 0) " " (get v 1) "\\&")
     :section
     (buffer-line b ".Sx \"" (get v 0) "\"")))
 
