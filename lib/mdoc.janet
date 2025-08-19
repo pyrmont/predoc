@@ -8,6 +8,7 @@
 (def- bo 91)
 (def- bs 92)
 (def- bc 93)
+(def- vb 124)
 
 (def- authors @[])
 
@@ -100,9 +101,7 @@
       ["Ar " (first (get node :value))]
       :etc
       ["No " "..."]))
-  (buffer-line b ".Eo")
-  (buffer-line b "." macro value)
-  (buffer-line b ".Ec"))
+  (buffer-line b "." macro value))
 
 (defn- render-oneliner [b s]
   (buffer-line b ".Nd" (string/slice s 2)))
@@ -115,7 +114,7 @@
     (when delim
       (when (ending-nl? b)
         (buffer/popn b 1)
-        (buffer/push b "\\c"))
+        (buffer/push b " "))
       (buffer-line b delim)
       (set i (+ i (length delim))))
     (when (def ch (get s i))
@@ -132,7 +131,9 @@
           (buffer/push b " Ns -"))
         # spaces at end of lines
         (and (= sp ch) (ending-nl? b))
-        nil
+        (when (string/has-suffix? "\\c\n" b)
+          (buffer/popn b 3)
+          (buffer/push b "\n"))
         # default
         (buffer/push b ch)))
     (++ i))
@@ -238,7 +239,9 @@
     (each el (get-in item [:value 0 :value])
       (case (type el)
         :string
-        (buffer-cont b el)
+        (if (= " | " el)
+          (buffer-line b ".No " el)
+          (buffer-cont b el))
         :table
         (render b el)))
     (set needs-pp? false)
@@ -288,7 +291,9 @@
   (set needs-pp? true))
 
 (defn- render-path [b s]
-  (buffer-line b ".Pa " s))
+  (buffer-line b ".Eo")
+  (buffer-line b ".Pa " s)
+  (buffer-line b ".Ec"))
 
 (defn- render-strong [b s]
   (buffer/popn b 1)
@@ -312,7 +317,7 @@
 (defn- render-raw [b s]
   (buffer-line b ".Eo \\(oq")
   (buffer-line b ".No \"" s "\"")
-  (buffer-line b ".Ec \\(cq"))
+  (buffer-line b ".Ec \\(cq\\c"))
 
 (defn- render-table [b node]
   (buffer/push b ".Bl -column")
