@@ -180,9 +180,12 @@
       (buffer/push b nl))))
 
 (defn- render-code [b node]
-  (buffer-line b ".Bd -literal -offset indent")
-  (buffer-line b (get node :value))
-  (buffer-line b ".Ed")
+  (if (= "SYNOPSIS" section)
+    (buffer-line b ".In " (string/slice (get node :value) 10 -2))
+    (do
+      (buffer-line b ".Bd -literal -offset indent")
+      (buffer-line b (get node :value))
+      (buffer-line b ".Ed")))
   (set needs-pp? true))
 
 (defn- render-command [b node]
