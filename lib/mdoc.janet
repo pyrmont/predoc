@@ -194,6 +194,10 @@
       (buffer-line b ".Nm"))
     (buffer-line b ".Ic " name)))
 
+(defn- render-comment [b node]
+  (each line (string/split "\n" (get node :value))
+    (buffer-line b ".\\\" " line)))
+
 (defn- render-emphasis [b s]
   (buffer/popn b 1)
   (buffer/push b "\\c\n")
@@ -314,6 +318,10 @@
   (if (def as (get fm :authors))
     (array/concat authors (string/split ", " as))
     (set no-author? false))
+  (def licence (-?> (get fm :license) (slurp)))
+  (when licence
+    (each line (string/split "\n" licence)
+      (buffer-line b ".\\\" " line)))
   (buffer-line b ".Dd " date)
   (buffer-line b ".Dt " title " " sec)
   (buffer-line b ".Os " (or (get fm :os)
@@ -372,6 +380,8 @@
     :frontmatter
     (render-prologue b node)
     # blocks
+    :comment
+    (render-comment b node)
     :table
     (render-table b node)
     :code

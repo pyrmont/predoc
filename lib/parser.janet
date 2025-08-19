@@ -287,6 +287,11 @@
   (or (first (peg/match i-grammar s))
       (error "invalid text")))
 
+(defn- make-cmnt [indent & lines]
+  @{:type :comment
+    :indent indent
+    :value (join "\n" indent lines true)})
+
 (defn- make-code [indent & lines]
   @{:type :code
     :indent indent
@@ -427,7 +432,10 @@
   res)
 
 (def grammar
-  ~{:main (/ (* (? :fm) (? :block) (any (* (some :nl) (? :block))) :eof) ,nest-blocks)
+  ~{:main (/ (* (? :fm)
+                (? :block)
+                (any (* (some :nl) (? :block)))
+                :eof) ,nest-blocks)
     # helpers
     :t (constant true)
     :f (constant false)
@@ -448,10 +456,15 @@
               (some (* :nl ':w+ ": " '(to :nl))) :nl
               (at-least 3 "-")) ,make-fm)
     # blocks
-    :block (+ :tblp :code :ti :li :h :para)
+    :block (+ :cmnt :tblp :code :ti :li :h :para)
     :block-m (+ :pre-m :code-o :ti-m :li-m)
     # predoc
     :pre-m (* :hs* (3 "`"))
+    # comment
+    :cmnt (/ (* :indent :cmnt-o :cmnt-b :cmnt-c) ,make-cmnt)
+    :cmnt-o (* :pre-m :nl :hs* (at-least 3 "/") :nl)
+    :cmnt-c (* :hs* (at-least 3 "/") :nl :pre-m)
+    :cmnt-b (any (if-not :cmnt-c (+ :line :nl)))
     # pipe table
     :tblp (/ (* :indent :tblp-o (some :tblp-tr) :tblp-c) ,make-tblp)
     :tblp-o (* :pre-m :nl :hs* (at-least 3 (+ "-" "|")) :nl)
