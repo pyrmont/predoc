@@ -169,6 +169,14 @@
   (def expect2 [{:kind :opt :type :arg :value ["f"]}])
   (is (== expect2 (parse-inlines input2))))
 
+(deftest inline-incl
+  (def input1
+    ```
+    `#include <foo.h>`
+    ```)
+	(def expect1 [{:type :incl :value ["foo.h"]}])
+	(is (== expect1 (parse-inlines input1))))
+
 (deftest inline-ev
   (def input1
     ```
