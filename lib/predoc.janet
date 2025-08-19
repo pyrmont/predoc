@@ -10,6 +10,6 @@
   (->> (predoc->ast predoc)
        (jdn/render-doc)))
 
-(defn predoc->mdoc [program predoc]
-  (->> (predoc->ast predoc)
-       (mdoc/render-doc program)))
+(defn predoc->mdoc [program predoc &named no-ad?]
+  (def ast (predoc->ast predoc))
+  (mdoc/render-doc program ast :no-ad? no-ad?))
