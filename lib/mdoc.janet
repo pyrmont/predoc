@@ -180,12 +180,9 @@
       (buffer/push b nl))))
 
 (defn- render-code [b node]
-  (if (= "SYNOPSIS" section)
-    (buffer-line b ".In " (string/slice (get node :value) 10 -2))
-    (do
-      (buffer-line b ".Bd -literal -offset indent")
-      (buffer-line b (get node :value))
-      (buffer-line b ".Ed")))
+  (buffer-line b ".Bd -literal -offset indent")
+  (buffer-line b (get node :value))
+  (buffer-line b ".Ed")
   (set needs-pp? true))
 
 (defn- render-command [b node]
@@ -223,6 +220,9 @@
     (do
       (set subsection v)
       (buffer-line b ".Ss " v))))
+
+(defn- render-incl [b s]
+  (buffer-line b ".In " s))
 
 (defn- render-link [b node]
   (def args (get node :value))
@@ -392,6 +392,8 @@
     (render-emphasis b v)
     :env-var
     (render-env-var b v)
+    :incl
+    (render-incl b v)
     :link
     (render-link b node)
     :path

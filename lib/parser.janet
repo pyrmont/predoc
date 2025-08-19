@@ -121,7 +121,7 @@
     :end (constant :end)
     :value (constant :value)
     # predoc
-    :predoc (+ :cmd :args :arg :ev :path :xref)
+    :predoc (+ :cmd :args :arg :incl :ev :path :xref)
     # predoc: command
     :cmd (/ (* :type (constant :command)
                :begin ($)
@@ -178,6 +178,13 @@
                  :value (group '"...")
                  :end ($))
               ,table)
+    # predoc: include directive
+    :incl (/ (* :type (constant :incl)
+                :begin ($)
+                "`#include <"
+                :value (group '(* (! ">") (to ">")))
+                ">`"
+                :end ($)) ,table)
     # predoc: environment variable
     :ev (/ (* :type (constant :env-var)
               :begin ($)
