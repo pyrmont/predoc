@@ -490,6 +490,29 @@
   (def expect3 "columns must be equal across rows")
   (assert-thrown-message expect3 (parse-blocks input3)))
 
+(deftest block-comment
+  (def input1
+    ````
+    ```
+    ////
+    foo bar
+    ////
+    ```
+    ````)
+  (def expect1 [{:indent 0 :type :comment :value "foo bar"}])
+  (is (== expect1 (parse-blocks input1)))
+  (def input2
+    ````
+    ```
+    ////
+    foo bar
+    baz qux
+    ////
+    ```
+    ````)
+  (def expect2 [{:indent 0 :type :comment :value "foo bar\nbaz qux"}])
+  (is (== expect2 (parse-blocks input2))))
+
 (deftest block-fm
   (def input1
     ```
