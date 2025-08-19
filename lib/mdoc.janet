@@ -259,12 +259,13 @@
 
 (defn- render-list-other [b node]
   (def loose? (get node :loose?))
+  (def offset "3n")
   (buffer-line b ".Pp")
   (cond
     (= :ol (get node :kind))
-    (buffer-line b ".Bl -enum" (if loose? "" " -compact"))
+    (buffer-line b ".Bl -enum -offset " offset (if loose? "" " -compact"))
     (= :ul (get node :kind))
-    (buffer-line b ".Bl -dash" (if loose? "" " -compact")))
+    (buffer-line b ".Bl -dash -offset " offset (if loose? "" " -compact")))
   (each item (get node :value)
     (buffer-line b ".It")
     (set needs-pp? false)
