@@ -263,8 +263,8 @@
 
 (def i-grammar (peg/compile i-grammar*))
 
-(defn- join [sep indent lines &opt no-trim?]
-  (when (and (zero? indent) (one? lines))
+(defn- join [sep qindents indent lines &opt no-trim?]
+  (when (and (zero? indent) (empty? qindents) (one? lines))
     (break (first lines)))
   (def res @"")
   (var first? true)
@@ -272,8 +272,15 @@
     (if first?
       (set first? false)
       (buffer/push res sep))
+    (var pos 0)
+    (each q qindents
+      (def qstr (string (string/repeat " " q) "> "))
+      (if (string/has-prefix? qstr (string/slice line pos))
+        (+= pos (+ q 2)) # 2 is the length of the quote marker
+        (break)))
+    (def unquoted (if (zero? pos) line (string/slice line pos)))
     (if (not no-trim?)
-      (buffer/push res (string/trim line))
+      (buffer/push res (string/trim unquoted))
       (do
         (var i 0)
         (while (def c (get line i))
@@ -287,15 +294,17 @@
   (or (first (peg/match i-grammar s))
       (error "invalid text")))
 
-(defn- make-cmnt [indent & lines]
+(defn- make-cmnt [[qindents indent] & lines]
   @{:type :comment
     :indent indent
-    :value (join "\n" indent lines true)})
+    :qindents qindents
+    :value (join "\n" qindents indent lines true)})
 
-(defn- make-code [indent & lines]
+(defn- make-code [[qindents indent] & lines]
   @{:type :code
     :indent indent
-    :value (join "\n" indent lines true)})
+    :qindents qindents
+    :value (join "\n" qindents indent lines true)})
 
 (defn- make-fm [& keyvals]
   (def value @{})
@@ -303,26 +312,39 @@
     (put value (keyword (string/ascii-lower k)) v))
   @{:type :frontmatter
     :indent 0
+    :qindents []
     :value value})
 
-(defn- make-h [indent line divider]
+(defn- make-h [[qindents indent] line divider]
   @{:type :heading
     :indent indent
     :level (if (= "=" divider) 1 2)
-    :value (parse-inlines line)})
+    :qindents qindents
+    :value (-> (join " " qindents indent [line])
+               (parse-inlines))})
 
-(defn- make-li [loose? indent marker lines]
+(defn- make-indent [qstrs istr]
+  (def qindents @[])
+  (var qsum 0)
+  (each qstr qstrs
+    (def len (length qstr))
+    (+= qsum len 2) # 2 is the length of the quote marker
+    (array/push qindents len))
+  @[qindents (+ qsum (length istr))])
+
+(defn- make-li [loose? [qindents indent] marker lines]
   (def kind (get {42 :ul 45 :ul} (first marker) :ol))
-  (def para-indent (+ indent (length marker)))
+  (def hang (+ indent (length marker)))
   (def para @{:type :paragraph
-              :indent para-indent
-              :value (-> (join " " para-indent lines)
+              :indent hang
+              :value (-> (join " " qindents hang lines)
                          (parse-inlines))})
   @{:type :list-item
     :kind kind
-    :hang para-indent
+    :hang hang
     :indent indent
     :loose? loose?
+    :qindents qindents
     :value @[para]})
 
 (defn- make-list [child]
@@ -331,31 +353,40 @@
     :kind (get child :kind)
     :indent (get child :indent)
     :loose? false
+    :qindents (get child :qindents)
     :value @[child]})
 
-(defn- make-para [indent & lines]
+(defn- make-para [[qindents indent] & lines]
   @{:type :paragraph
     :indent indent
-    :value (-> (join " " indent lines)
+    :qindents qindents
+    :value (-> (join " " qindents indent lines)
                (parse-inlines))})
 
-(defn- make-ti [loose? indent marker f-line lines]
-  (def para-indent (+ indent (length marker)))
+(defn- make-qt [indent]
+  @{:type :blockquote
+    :hang (+ 2 indent) # 2 is the quote marker length
+    :indent indent
+    :value @[]})
+
+(defn- make-ti [loose? [qindents indent] marker f-line lines]
+  (def hang (+ indent (length marker)))
   (def tag @{:type :paragraph
-             :indent para-indent
+             :indent hang
              :value (parse-inlines f-line)})
   (def body @{:type :paragraph
-              :indent para-indent
-              :value (-> (join " " para-indent lines)
+              :indent hang
+              :value (-> (join " " qindents hang lines)
                          (parse-inlines))})
   @{:type :list-item
     :kind :tl
-    :hang para-indent
+    :hang hang
     :indent indent
     :loose? loose?
+    :qindents qindents
     :value @[tag body]})
 
-(defn- make-tblp [indent & lines]
+(defn- make-tblp [[qindents indent] & lines]
   (def rows @[])
   (var cols nil)
   (each line lines
@@ -372,6 +403,7 @@
   @{:type :table
     :indent indent
     :cols cols
+    :qindents qindents
     :value @[nil rows]})
 
 (defn- nest-blocks [& nodes]
@@ -382,51 +414,77 @@
     (while (def child (get children i))
       (if (get child :loose?)
         (put list :loose? true))
+      (put child :qindents nil)
       (put child :loose? nil)
       (++ i)))
+  (defn form-queue [node]
+    (when (empty? (get node :qindents)) (break [node]))
+    (def res (map (fn [x] (make-qt x)) (get node :qindents)))
+    (array/push res node))
   (var siblings res)
   (var indent 0)
   (def trail @[])
-  (each n nodes
-    (def n-type (get n :type))
-    (def n-indent (get n :indent))
-    # use infinite loop to make break work like continue
-    (while true
-      # node is indented >= last node
-      (when (<= indent n-indent)
-        (when (= :list-item n-type)
-          (def new-list (make-list n))
-          (array/push siblings new-list)
-          (array/push trail new-list)
+  (each n* nodes
+    (def queue (form-queue n*))
+    (put n* :qindents nil)
+    (each n queue
+      (def n-type (get n :type))
+      (def n-indent (get n :indent))
+      # use infinite loop to make break work like continue
+      (while true
+        # node is indented >= last node
+        (when (<= indent n-indent)
+          (when (= :blockquote n-type)
+            (array/push siblings n)
+            (array/push trail n)
+            (set siblings (get n :value))
+            (set indent (get n :hang)) # 2 is the quote marker length
+            (break))
+          (when (= :list-item n-type)
+            (def new-list (make-list n))
+            (array/push siblings new-list)
+            (array/push trail new-list)
+            (set siblings (get n :value))
+            (set indent (get n :hang))
+            (break))
+          (array/push siblings n)
+          (break))
+        # node is indented < last node
+        (def parent (array/pop trail))
+        # node is a child of the parent
+        (when (and (= :list-item n-type)
+                   (= :list (get parent :type))
+                   (= (get parent :kind) (get n :kind))
+                   (<= (get parent :indent) n-indent))
+          (array/push trail parent)
+          (array/push (get parent :value) n)
           (set siblings (get n :value))
           (set indent (get n :hang))
           (break))
-        (array/push siblings n)
-        (break))
-      # node is indented < last node
-      (def parent (array/pop trail))
-      # node is a child of the parent
-      (when (and (= :list-item n-type)
-                 (= :list (get parent :type))
-                 (= (get parent :kind) (get n :kind))
-                 (<= (get parent :indent) n-indent))
-        (array/push trail parent)
-        (array/push (get parent :value) n)
-        (set siblings (get n :value))
-        (set indent (get n :hang))
-        (break))
-      # close parent if it's a list
-      (if (= :list (get parent :type))
-        (close-list parent))
-      # prepare to check next outer level
-      (if (def outer (last trail))
-        (do
-          (def prev (last (get outer :value)))
-          (set siblings (get prev :value))
-          (set indent (get prev :hang))) # nodes that don't have :hang?
-        (do
-          (set siblings res)
-          (set indent 0)))))
+        # close parent if it's a list
+        (if (= :list (get parent :type))
+          (close-list parent))
+        # prepare to check next outer level
+        (if (def outer (last trail))
+          (do
+            (case (get outer :type)
+              # set up for a list
+              :list
+              (do
+                (def prev (last (get outer :value)))
+                (set siblings (get prev :value))
+                (set indent (get prev :hang)))
+              # set up for a blockquote
+              :blockquote
+              (do
+                (set siblings (get outer :value))
+                (set indent (get outer :hang))) # 2 is the quote marker length
+              # default
+              (error "impossible"))
+            )
+          (do
+            (set siblings res)
+            (set indent 0))))))
   (if (= :list (get (last res) :type))
     (close-list (last res)))
   res)
@@ -446,7 +504,7 @@
     :eof -1
     :eol (+ :nl :eof)
     :break (2 :nl)
-    :indent (/ ':hs* ,length)
+    :indent (/ (* (group (any (* ':hs* :qt-m))) ':hs*) ,make-indent)
     :line (* (! :eol) '(to :eol) (? (if-not :break :nl)))
     :cont (if-not :block-m :line)
     :cont+ (some :cont)
@@ -458,13 +516,16 @@
     # blocks
     :block (+ :cmnt :tblp :code :ti :li :h :para)
     :block-m (+ :pre-m :code-o :ti-m :li-m)
-    # predoc
+    # quote marker
+    :qt-m (* "> ")
+    # predoc marker
     :pre-m (* :hs* (3 "`"))
     # comment
     :cmnt (/ (* :indent :cmnt-o :cmnt-b :cmnt-c) ,make-cmnt)
-    :cmnt-o (* :pre-m :nl :hs* (at-least 3 "/") :nl)
-    :cmnt-c (* :hs* (at-least 3 "/") :nl :pre-m)
-    :cmnt-b (any (if-not :cmnt-c (+ :line :nl)))
+    :cmnt-o (* :pre-m :nl)
+    :cmnt-c (* :pre-m)
+    :cmnt-b (some (if-not :cmnt-c :cmnt-l))
+    :cmnt-l (* :hs* "// " '(to :nl) :nl)
     # pipe table
     :tblp (/ (* :indent :tblp-o (some :tblp-tr) :tblp-c) ,make-tblp)
     :tblp-o (* :pre-m :nl :hs* (at-least 3 (+ "-" "|")) :nl)
@@ -475,11 +536,11 @@
     :tblp-td (* (! :tblp-tr-c) '(to (+ :tblp-td-d :tblp-tr-c)) (? :tblp-td-d))
     :tblp-td-d " | "
     # code
-    :code (/ (* :code-o
-                (any (if-not :code-c :line))
-                :code-c) ,make-code)
+    :code (/ (* :code-o :code-b :code-c) ,make-code)
     :code-o (* :indent (only-tags (<- (at-least 4 "`") :cf)) :nl)
     :code-c (* :hs* (backmatch :cf))
+    :code-b (any (if-not :code-c :code-l))
+    :code-l (* '(to :nl) :nl)
     # tag list item
     :ti (some (/ (* :loose? :ti-m :ti-t (group :cont+)) ,make-ti))
     :ti-m (* :indent '(* "-" :hs+))
@@ -487,7 +548,7 @@
     :ti-d (* ":" :nl)
     # list item
     :li (some (/ (* :loose? :li-m (group :cont+)) ,make-li))
-    :li-m (* :indent '(+ (* :d+ "." (some " ")) (* (set "-*") :hs+)))
+    :li-m (* :indent '(+ (* :d+ "." :hs+) (* (set "-*") :hs+)))
     # heading
     :h (/ (* :indent :line :h-l) ,make-h)
     :h-l (+ (* '"=" (at-least 2 "="))

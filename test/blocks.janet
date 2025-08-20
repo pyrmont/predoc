@@ -420,7 +420,17 @@
     `````)
   (def expect3
     [{:indent 2 :type :code :value "foo\nbar"}])
-  (is (== expect3 (parse-blocks input3))))
+  (is (== expect3 (parse-blocks input3)))
+  (def input4
+    `````
+    ````
+    foo
+
+    bar
+    ````
+    `````)
+  (def expect4 [{:indent 0 :type :code :value "foo\n\nbar"}])
+  (is (== expect4 (parse-blocks input4))))
 
 (deftest block-table
   (def input1
@@ -494,9 +504,7 @@
   (def input1
     ````
     ```
-    ////
-    foo bar
-    ////
+    // foo bar
     ```
     ````)
   (def expect1 [{:indent 0 :type :comment :value "foo bar"}])
@@ -504,10 +512,8 @@
   (def input2
     ````
     ```
-    ////
-    foo bar
-    baz qux
-    ////
+    // foo bar
+    // baz qux
     ```
     ````)
   (def expect2 [{:indent 0 :type :comment :value "foo bar\nbaz qux"}])

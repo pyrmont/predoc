@@ -180,6 +180,12 @@
         (buffer/push b " Aq Mt " email))
       (buffer/push b nl))))
 
+(defn- render-blockquote [b node]
+  (buffer-line b ".Bd -ragged -offset 3n")
+  (each v (get node :value)
+    (render b v))
+  (buffer-line b ".Ed"))
+
 (defn- render-code [b node]
   (buffer-line b ".Bd -literal -offset indent")
   (buffer-line b (get node :value))
@@ -199,8 +205,9 @@
     (buffer-line b `.\" ` line)))
 
 (defn- render-emphasis [b s]
-  (buffer/popn b 1)
-  (buffer/push b "\\c\n")
+  (when (not= "Xo" (string/slice b -4 -2))
+    (buffer/popn b 1)
+    (buffer/push b "\\c\n"))
   (buffer-line b ".Bf Em")
   (render-string b s)
   (buffer-line b ".Ef"))
@@ -242,7 +249,7 @@
   (buffer-line b ".Pp")
   (buffer-line b ".Bl -tag -width Ds" (if loose? "" " -compact"))
   (each item (get node :value)
-    (buffer-line b ".It Xo")
+    (buffer-line b ".It Xo ")
     (set needs-pp? false)
     (each el (get-in item [:value 0 :value])
       (case (type el)
@@ -305,8 +312,9 @@
   (buffer-line b ".Ec"))
 
 (defn- render-strong [b s]
-  (buffer/popn b 1)
-  (buffer/push b "\\c\n")
+  (when (not= "Xo" (string/slice b -4 -2))
+    (buffer/popn b 1)
+    (buffer/push b "\\c\n"))
   (buffer-line b ".Bf Sy")
   (render-string b s)
   (buffer-line b ".Ef"))
@@ -382,6 +390,8 @@
     # blocks
     :comment
     (render-comment b node)
+    :blockquote
+    (render-blockquote b node)
     :table
     (render-table b node)
     :code
