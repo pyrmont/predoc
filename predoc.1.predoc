@@ -14,29 +14,39 @@ NAME
 SYNOPSIS
 ========
 
-**predoc** [**--name** _program_] [**--output** _path_] [_path_]
+**predoc** [**--format** _fmt_] [**--name** _program_] [**--no-ad**]
+           [**--output** _path_] _input_
 
 DESCRIPTION
 ===========
 
-**predoc** is a command-line tool for converting documents written in Predoc to
-manpages written in mdoc.
+**predoc** is a command-line tool for converting documents written in
+`predoc(7)` to manpages written in `mdoc(7)`.
 
 Options
 -------
 
+- **--format** _fmt_:
+  Set the format to _fmt_ which can be either ``jdn`` or ``mdoc``. The default
+  is ``mdoc``. The ``jdn`` format is primarily for debugging but I guess I
+  can't stop you using it for other purposes if that's the way you roll.
+
 - **--name** _program_:
-  Set the name of the program to document. References in your Predoc document to
-  ``**program**`` will be converted into instances of the `Nm` macro. If _path_
-  is provided, _program_ will be the part of the path before the first dot.
+  Set the name of the subject of the document. If a value is not provide and
+  _input_ is a file path, use the portion of the file name before the '.'. If
+  reading from stdin, a value must be provided or will error.
+
+- **--no-ad**:
+  Disable the insertion of the generated-by message at the top of the
+  mdoc-formatted output.
 
 - **--output** _path_:
-  Set the path for output. By default, **predoc** will output to `STDOUT`. If
-  _path_ is provided, **--output** will be the part of the path before the file
-  extension.
+  Set the path for output. If a value is not provided and _input_ is a file
+  path, use the portion of the file name before the file extension. To output
+  to stdout, use ``-``.
 
-- _path_:
-  Set the input path. By default, **predoc** will read from `STDIN`.
+- _input_:
+  Set the input path. To read from stdin, use ``-``.
 
 EXIT STATUS
 ===========
@@ -55,7 +65,7 @@ $ predoc example.1.predoc
 Or with values set explicitly:
 
 ````
-$ predoc --output example.1 --name example example.1.predoc
+$ predoc --name example --output example.1 example.1.predoc
 ````
 
 BUGS
