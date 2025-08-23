@@ -123,8 +123,8 @@ The recognised keys are as follows:
 
 - _License_:
   The licence is a path to a file that contains the licence that applies to the
-  document. The content of this file is read in by **predoc(1)** and output into
-  a commented block at the beginning of the `mdoc(7)` document.
+  document. The content of this file is read in by `predoc(1)` and output into a
+  commented block at the beginning of the `mdoc(7)` document.
 
 Sections
 --------
