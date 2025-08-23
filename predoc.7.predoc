@@ -110,7 +110,7 @@ The recognised keys are as follows:
 
   where the format specifiers have the same meaning as `strftime(3)`. `mdoc(7)`
   manpages use dates in the format ``%B %d, %Y`` and the date will be converted
-  to this format by **predoc(1)**.
+  to this format by `predoc(1)`.
 
 - _Project_:
   The project is the name of the project. This is used togther with _Version_
