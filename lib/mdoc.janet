@@ -2,9 +2,12 @@
 
 (def- nl 10)
 (def- sp 32)
+(def- dq 34)
+(def- sq 39)
 (def- po 40)
 (def- pc 41)
 (def- mi 45)
+(def- fs 46)
 (def- bo 91)
 (def- bs 92)
 (def- bc 93)
@@ -16,11 +19,22 @@
 (var- needs-pp? false)
 (var- section nil)
 (var- subsection nil)
+(var- inline-macros 0)
 
 (defn- buffer-cont [b & text]
   (if (= nl (last b))
     (buffer/popn b 1))
   (buffer/push b ;text nl))
+
+(defn buffer-esc [b s &opt inline?]
+  (def escapes
+    {bo "\\(lB" bs "\\e" dq "\\(dq" sq "\\(aq"})
+  (var i 0)
+  (while (def ch (get s i))
+    (buffer/push b (get escapes ch ch))
+    (++ i))
+  (unless inline?
+    (buffer/push b nl)))
 
 (defn- buffer-line [b & text]
   (buffer/push b ;text nl))
@@ -188,7 +202,7 @@
 
 (defn- render-code [b node]
   (buffer-line b ".Bd -literal -offset indent")
-  (buffer-line b (get node :value))
+  (buffer-esc b (get node :value))
   (buffer-line b ".Ed")
   (set needs-pp? true))
 
@@ -204,13 +218,19 @@
   (each line (string/split "\n" (get node :value))
     (buffer-line b `.\" ` line)))
 
-(defn- render-emphasis [b s]
+(defn- render-emphasis [b v]
   (when (not= "Xo" (string/slice b -4 -2))
     (buffer/popn b 1)
     (buffer/push b "\\c\n"))
-  (buffer-line b ".Bf Em")
-  (render-string b s)
-  (buffer-line b ".Ef"))
+  (if (zero? inline-macros)
+    (buffer/push b ".")
+    (buffer/push b " "))
+  (buffer/push b "Em ")
+  (++ inline-macros)
+  (if (table? v)
+    (render b v)
+    (render-string b v))
+  (-- inline-macros))
 
 (defn- render-env-var [b s]
   (buffer-line b ".Ev " s))
@@ -238,8 +258,12 @@
 
 (defn- render-link [b node]
   (def args (get node :value))
-  (buffer/push b ".Lk ")
+  (if (zero? inline-macros)
+    (buffer/push b ".")
+    (buffer/push b " "))
+  (buffer/push b "Lk ")
   (buffer/push b (get args 0))
+  # :value could have more than 2 values. This needs to be handled
   (if (get args 1)
     (buffer/push b " \"" (get args 1) "\""))
   (buffer/push b nl))
@@ -276,7 +300,7 @@
     (= :ol (get node :kind))
     (buffer-line b ".Bl -enum -offset " offset (if loose? "" " -compact"))
     (= :ul (get node :kind))
-    (buffer-line b ".Bl -dash -offset " offset (if loose? "" " -compact")))
+    (buffer-line b ".Bl -bullet -offset " offset (if loose? "" " -compact")))
   (each item (get node :value)
     (buffer-line b ".It")
     (set needs-pp? false)
@@ -311,13 +335,19 @@
   (buffer-line b ".Pa " s)
   (buffer-line b ".Ec"))
 
-(defn- render-strong [b s]
+(defn- render-strong [b v]
   (when (not= "Xo" (string/slice b -4 -2))
     (buffer/popn b 1)
     (buffer/push b "\\c\n"))
-  (buffer-line b ".Bf Sy")
-  (render-string b s)
-  (buffer-line b ".Ef"))
+  (if (zero? inline-macros)
+    (buffer/push b ".")
+    (buffer/push b " "))
+  (buffer/push b "Sy ")
+  (++ inline-macros)
+  (if (table? v)
+    (render b v)
+    (render-string b v))
+  (-- inline-macros))
 
 (defn- render-prologue [b node]
   (def fm (get node :value))
@@ -336,9 +366,12 @@
                             (string (get fm :project) " " (get fm :version)))))
 
 (defn- render-raw [b s]
-  (if (string/has-suffix? " " s)
-    (buffer-line b ".Ql \"" s "\"")
-    (buffer-line b ".Ql " s "\\&")))
+  (defn backticks? [s]
+    (and (string/has-prefix? " `" s)
+         (string/has-suffix? "` " s)))
+  (buffer/push b ".Ql \"")
+  (buffer-esc b (if (backticks? s) (string/slice s 1 -2) s) true)
+  (buffer/push b "\"" nl))
 
 (defn- render-table [b node]
   (buffer/push b ".Bl -column")

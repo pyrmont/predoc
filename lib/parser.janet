@@ -506,8 +506,6 @@
     :break (2 :nl)
     :indent (/ (* (group (any (* ':hs* :qt-m))) ':hs*) ,make-indent)
     :line (* (! :eol) '(to :eol) (? (if-not :break :nl)))
-    :cont (if-not :block-m :line)
-    :cont+ (some :cont)
     :loose? (+ (if (> -2 :break) :t) :f)
     # front matter
     :fm (/ (* (at-least 3 "-")
@@ -542,13 +540,15 @@
     :code-b (any (if-not :code-c :code-l))
     :code-l (* '(to :nl) :nl)
     # tag list item
-    :ti (some (/ (* :loose? :ti-m :ti-t (group :cont+)) ,make-ti))
+    :ti (some (/ (* :loose? :ti-m :ti-t :ti-b) ,make-ti))
     :ti-m (* :indent '(* "-" :hs+))
     :ti-t (* (! :ti-d) '(to :ti-d) :ti-d)
+    :ti-b (group (some (if-not :ti-m :line)))
     :ti-d (* ":" :nl)
     # list item
-    :li (some (/ (* :loose? :li-m (group :cont+)) ,make-li))
+    :li (some (/ (* :loose? :li-m :li-b) ,make-li))
     :li-m (* :indent '(+ (* :d+ "." :hs+) (* (set "-*") :hs+)))
+    :li-b (group (some (if-not :li-m :line)))
     # heading
     :h (/ (* :indent :line :h-l) ,make-h)
     :h-l (+ (* '"=" (at-least 2 "="))
