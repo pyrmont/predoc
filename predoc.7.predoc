@@ -1,0 +1,670 @@
+---
+Title: PREDOC(7)
+Authors: Michael Camilleri <mike@inqk.net>
+Date: August 19, 2025
+Project: Predoc
+Version: 0.1-dev
+---
+
+NAME
+====
+
+**predoc** - a Markdown flavour for manpages
+
+DESCRIPTION
+===========
+
+The **predoc** language is a Markdown flavour aimed at authors writing manpages.
+
+This document describes the **predoc** syntax. The original source for this
+manpage is written in **predoc** and can be viewed in the project repository.
+
+The command-line utility that can be used to convert **predoc** into `mdoc(7)`
+is documented at `predoc(1)`.
+
+Philosophy
+----------
+
+Markdown is a lightweight markup language that optimises for ease-of-reading and
+ease-of-writing. As explained on the Markdown project website:
+
+> Readability is emphasised above all else. A Markdown-formatted document should
+> be publishable as-is, as plain text, without looking like it's been marked up
+> with tags or formatting instructions.
+
+**predoc** shares this philosophy. Its syntax is comprised entirely of
+punctuation characters. As much as possible, the punctuation characters are
+chosen to look like what they mean. Headings look like headings, emphasis looks
+like emphasis, lists look like lists and so on.
+
+Markdown assumes that it will be converted to HTML. **predoc** assumes that it
+will be converted to `mdoc(7)`. In the same way that Markdown is not a
+replacement for HTML, **predoc** is not a replacement for `mdoc(7)`. John
+Gruber, the creator of Markdown, makes a distinction between HTML as a
+publishing format and Markdown as a writing format. **predoc** makes this same
+distinction: `mdoc(7)` is a publishing format and **predoc** is a writing
+format.
+
+Design Goals
+------------
+
+The design goals of **predoc** are:
+
+1. to make the experience of writing manpages pleasant
+2. to convert to semantically significant `mdoc(7)`
+3. to degrade gracefully when parsed as Markdown
+
+We believe that manpages are an under-utilised resource in the computing world
+and that one of the reasons for this is that `roff(7)` and `mdoc(7)` are not
+approachable formats for writing.
+
+The ultimate aim of **predoc** is to encourage more people to contribute to the
+production of manpages.
+
+STRUCTURE
+=========
+
+A **predoc** document should begin with frontmatter followed by a number of
+sections.
+
+Frontmatter
+-----------
+
+Frontmatter is a collection of colon-separated (``: ``) key-value pairs at the
+beginning of a **predoc** document. Frontmatter is demarcated by 3 or more ``-``
+characters at the beginning and the end.
+
+To produce a valid manpage, the frontmatter must include a _Title_. The other
+elements are optional.
+
+````
+---
+Title: EXAMPLE(7)
+Authors: Jane Smith <jane@example.org>
+Date: 2025-01-01
+Project: Example
+Version: 1.0
+License: ./LICENSE
+---
+````
+
+The recognised keys are as follows:
+
+- _Title_:
+  The title is written in capital letters followed by a number in parentheses.
+  This number corresponds to the manual section number. See the listing for the
+  _Dt_ macro in `mdoc(7)` for more information on the manual sections into which
+  manpages are categorised.
+
+- _Authors_:
+  Authors are a comma-delimited list (``, ``). An author consists of a name
+  followed by an optional e-mail address in angle brackets.
+
+- _Date_:
+  The date is a combination of day, month and year. There are three valid
+  formats for dates:
+
+  1. ``%Y-%m-%d``
+  2. ``%d %B %Y``
+  3. ``%B %d, %Y``
+
+  where the format specifiers have the same meaning as `strftime(3)`. `mdoc(7)`
+  manpages use dates in the format ``%B %d, %Y`` and the date will be converted
+  to this format by **predoc(1)**.
+
+- _Project_:
+  The project is the name of the project. This is used togther with _Version_
+  for the `.Os` macro that `man(1)` will print at the bottom of a manpage.
+
+- _Version_:
+  The version is the version of the project. This is used together with
+  _Project_ for the `.Os` macro that `man(1)` will print at the bottom of the
+  manpage.
+
+- _License_:
+  The licence is a path to a file that contains the licence that applies to the
+  document. The content of this file is read in by **predoc(1)** and output into
+  a commented block at the beginning of the `mdoc(7)` document.
+
+Sections
+--------
+
+Sections in a **predoc** document are created by the use of *Section Headings*.
+
+The sections typically used in a **predoc** document are a combination of the
+following:
+
+```
+----|----------------------|-----|------------------------
+ 1. | NAME                 | 11. | DIAGNOSTICS
+ 2. | SYNOPSIS             | 12. | ERRORS
+ 3. | DESCRIPTION          | 13. | SEE ALSO
+ 4. | CONTEXT              | 14. | STANDARDS
+ 5. | IMPLEMENTATION NOTES | 15. | HISTORY
+ 6. | RETURN VALUES        | 16. | AUTHORS
+ 7. | ENVIRONMENT          | 17. | CAVEATS
+ 8. | FILES                | 18. | BUGS
+ 9. | EXIT STATUS          | 19. | SECURITY CONSIDERATIONS
+10. | EXAMPLES             |     | \
+----|----------------------|-----|------------------------
+```
+
+The first section must be the NAME section and a valid manpage must contain a
+NAME section. The NAME section should include at least one instance of the name
+of the subject of the manpage followed by a description.
+
+By convention, most manpages should also include a SYNOPSIS and DESCRIPTION
+section. As with `mdoc(7)` documents, the sections in a **predoc** document are
+usually ordered as they appear above. Additional sections can be added where
+appropriate.
+
+For more information about sections, see `mdoc(7)`.
+
+SYNTAX OVERVIEW
+===============
+
+**predoc** is a flavour of Markdown and its syntax is a reduced and modified set
+of Markdown's syntax. Like Markdown, this syntax consists of:
+
+1. block elements
+2. inline elements
+
+These elements are discussed in greater detail below in `<BLOCK ELEMENTS>` and
+`<INLINE ELEMENTS>`.
+
+Differences to Markdown
+-----------------------
+
+While much of syntax will be familiar to users of Markdown, **predoc** does
+make two kinds of changes. First, it varies the semantic meaning of some
+elements (referred to as 'variations'). Second, it adds new elements (referred
+to as 'extensions'). Where a piece of syntax involves a variation or an
+extension, it is noted below in the relevant syntax description.
+
+Block-level extensions are denoted by __Predoc block markers__. A Predoc block
+marker is a series of 3 consecutive backticks (```` ``` ````) on a line that
+open and close the block. This marker was chosen deliberately because it is
+recognised in Markdown as a fenced code block. Its use in **predoc** ensures
+that these extensions degrade gracefully when parsed by Markdown parsers. A
+consequence of this decision is that **predoc** fenced code blocks are denoted
+by 4 backticks on a line.
+
+Inline-level extensions are denoted by __Predoc inline markers__. A Predoc
+inline markers a single backtick (`` ` ``) on either side of an inline element.
+As with the block markers, the inline marker has been chosen deliberately
+because it degrades gracefully and, as a consequence, raw text is denoted by 2
+backticks.
+
+BLOCK ELEMENTS
+==============
+
+Block elements are elements that do not need a containing element. Some block
+elements can be nested and some cannot. Each syntax description below notes when
+a block element can be nested. A block element can never be nested inside an
+inline element.
+
+Blockquotes
+-----------
+
+A blockquote is denoted by a leading ``> ``.
+
+````
+> Welcome to the desert
+> of the real.
+````
+
+A blockquote can be nested in a blockquote or a list. A blockquote can contain a
+blockquote, code block, list or simple table.
+
+When rendered to `mdoc(7)`, a blockquote produces an indented display block
+using the ``Bd`` macro with the arguments ``-ragged`` and ``-offset 3n``.
+
+Code Blocks
+-----------
+
+A code block is denoted by an opening 'fence' of 4 backticks (````` ```` `````)
+and a closing fence of 4 backticks.
+
+`````
+````
+Call trans opt: received. 2-19-98 13:24:18 REC:Log>
+````
+`````
+
+Code blocks can be nested inside blockquotes and lists. Code blocks cannot
+contain other block elements. If a code block is indented/quoted, the
+indent/quote is removed from each line of the code block.
+
+This is a *variation* to Markdown. First, fences require 4 backticks rather than
+3. Second, the use of 4 spaces to denote a code block by indentation is not
+supported.
+
+When rendered to `mdoc(7)`, a code block produces an indented display block
+using the ``Bd`` macro with the arguments ``-literal`` and ``-offset indent``.
+
+Comments
+--------
+
+A comment is denoted by a Predoc block marker. Each line is prefixed by ``//``.
+
+````
+```
+// Everybody falls the first time.
+```
+````
+
+A comment cannot be nested inside other blocks. Other blocks cannot be nested
+inside comments. Comments do not support indenting/quoting.
+
+This is an *extension* to Markdown. They will not appear in the visible output
+but will be in the source that is generated. It is common practice to use
+comments in manpages to include licence information. Please note that in order
+to add a licence comment to the beginning of a document, use the _License_ key
+in the frontmatter (see `<Frontmatter>`).
+
+When rendered to `mdoc(7)`, a comment produces lines of text prefixed with the
+comment marker ``.\"``.
+
+Headings
+--------
+
+A heading is denoted by the use of 3 or more heading markers after a line of
+text. There are 2 heading markers: ``=`` and ``-``. The first denotes a section
+heading. The second denotes a subsection heading.
+
+````
+LOCATIONS
+=========
+
+Nebuchadnezzar
+--------------
+````
+
+A heading can be nested in a blockquote. A heading cannot contain other block
+elements.
+
+This is a *variation* on Markdown. The use of ``#`` to denote atx-style headings
+is not supported.
+
+When rendered to `mdoc(7)`, a heading produces either a section heading using
+the ``Sh`` macro or a subsection heading using the ``Ss` macro.
+
+Ordered Lists
+-------------
+
+An ordered list is denoted by a number followed by a full stop/period and a
+space. The actual number used is not significant. The list items will be
+sequentially numbered when read by `man(1)`.
+
+````
+1. Mouse
+2. Apoc
+3. Switch
+````
+
+An ordered list can be nested in a blockquote or a list. An ordered list item
+can contain a blockquote, code block, list or simple table.
+
+When rendered to `mdoc(7)`, an ordered list produces a numbered list using the
+``Bl`` macro with the arguments ``-enum`` and ``-offset 3n``. If the list is
+'tight' (i.e., there are no blank lines between elements), the arguments also
+include ``-compact``.
+
+Simple Tables
+-------------
+
+A simple table is denoted by a Predoc block marker and then 3 or more ``|`` and
+``-`` characters.
+
+````
+```
+--------|---
+ pills  | 2
+ spoons | 0
+--------|---
+```
+````
+
+A simple table an be nested in a blockquote or a list. Other blocks cannot be
+nested inside a table.
+
+This is an *extension* to Markdown. Simple tables are for tabular data. They do
+not support headers, alignment, column-spanning cells or other fancy features.
+For empty cells, the content can be the ``\`` character.
+
+When rendered to `mdoc(7)`, a simple table produces a columnated list using the
+``Bl`` macro with the argument ``-column``. The width of each column will be set
+to avoid wrapping.
+
+Tag Lists
+---------
+
+A tag list is denoted by a ``-`` at the start of the first line, a ``:`` at the
+end of the first line and then a body beginning on the second line.
+
+````
+- **Dojo**:
+  A place for sparring.
+
+- **Street**:
+  A place for concentration.
+````
+
+A tag list can be nested in a blockquote or a list. The list item can contain a
+blockquote, code block, list or simple table.
+
+This is a *variation* on Markdown. A tag list is a list of tag/body pairs. Tag
+lists are used idiomatically in manpages for argument lists but can be used for
+other content.
+
+When rendered to `mdoc(7)`, a tag list produces a tagged list using the
+``Bl`` macro with the arguments ``-tag`` and ``-width Ds``. If the list is
+'tight' (i.e., there are no blank lines between elements), the arguments also
+include ``-compact``.
+
+Unordered Lists
+---------------
+
+An unordered list is denoted by a line beginning with ``- `` or ``* ``.
+
+````
+- phone
+- sunglasses
+- jacket
+````
+
+An unordered list can be nested in a blockquote or a list. A list item can
+contain a blockquote, code block, list or simple table.
+
+This is a *variation* on Markdown. The use of ``+`` to mark an unordered list
+item is not supported to simplify parsing.
+
+When rendered to `mdoc(7)`, an unordered list produces a bulleted list using the
+``Bl`` macro with the arguments  ``-bullet`` and ``-offset 3n``. If the list is
+'tight' (i.e., there are no blank lines between elements), the arguments also
+include ``-compact``.
+
+Paragraphs
+----------
+
+Paragraphs are the default block element and are not denoted by any syntax.
+
+Paragraphs can be nested in a blockquote or a list. A paragraph cannot contain
+other block elements.
+
+When rendered to `mdoc(7)`, a paragraph produces a sequence of text lines and
+input lines. The text lines end on closing delimiters.
+
+Inline Elements
+===============
+
+Inline elements are elements that exist within a block element. Some inline
+elements can be nested and some cannot. Each syntax description below notes when
+an inline element can be nested.
+
+Arguments
+---------
+
+An argument is denoted by ``_`` on either side of the text.
+
+````
+It's the _question_ that drives us.
+````
+
+An argument cannot be nested in other inline elements. An argument cannot
+contain other inline elements.
+
+This is a *variation* on Markdown. Arguments are intended to be used for what
+`mdoc(7)` calls 'command arguments' (some people may refer to these as
+'command-line parameters' to distinguish from 'command-line options'). For
+emphasis text, use ``*``.
+
+When rendered to `mdoc(7)`, an argument produces a command argument using the
+`Ar` macro.
+
+Automatic Links
+---------------
+
+An automatic link is denoted by a URL surrounded by angle brackets.
+
+````
+It means buckle your <http://example.org>, Dorothy.
+````
+
+An automatic link can be nested in emphasis text and strong text. An automatic
+link cannot contain other inline elements.
+
+When rendered to mdoc(7), an automatic link produces a hyperlink using the `Lk`
+macro.
+
+Commands
+--------
+
+A command is denoted by ``**`` on either side of text.
+
+````
+Load the **jump** program.
+````
+
+A command cannot be nested in other inline elements. A command cannot contain
+other inline elements.
+
+This is a *variation* on Markdown. Commands are intended to be used for internal
+or interactive commands associated with the subject of the manpage. For strong
+text, use ``__`` instead.
+
+When rendered to `mdoc(7)`, a command usually produces an internal command using
+the ``Ic`` macro. The exception to this is if the command matches the program
+name provided to `predoc(1)`. In this case, a command produces the name of the
+manpage using the ``Nm`` macro.
+
+Emphasis Text
+------------
+
+Emphasis text is denoted by ``*`` on either side of the text.
+
+````
+'I hate this place. This *zoo*.'
+````
+
+Emphasis text can be nested in links and strong text. Emphasis text can contain
+links and strong text.
+
+This is a *variation* on Markdown. The use of ``_`` is reserved for arguments
+and does not produce emphasis text. For command arguments, use ``_``.
+
+When rendered to `mdoc(7)`, emphasis text produces text in an italic font using
+the ``Em`` macro.
+
+Environment Variables
+---------------------
+
+An environment variable is denoted by a Predoc inline marker on either side of
+the text. The text must be written in uppercase but can begin with a ``$`` and
+contain ``_``.
+
+````
+Set `$HAIR` to the desired colour.
+````
+
+An environment variable cannot be nested in other inline elements. An
+environment variable cannot contain other inline elements.
+
+This is an *extension* to Markdown. As the name suggests, they are intended to
+be used for environment variables.
+
+When rendered to `mdoc(7)`, an environment variable will produce an environment
+variable using the ``Ev`` macro.
+
+External Cross-References
+-------------------------
+
+An external cross-reference is denoted by a Predoc inline marker on either side
+of the text. The text must end in a number in parentheses.
+
+````
+The image translators work for `construct(1)`.
+````
+
+A cross-reference cannot be nested in other inline elements. A cross-reference
+cannot contain other inline elements.
+
+This is an *extension* to Markdown. These cross-references are to other
+manpages. The number in parentheses is the number of the manual section.
+
+When rendered to `mdoc(7)`, an external cross-reference produces a
+cross-reference to another manual page using the ``Xr`` macro.
+
+Internal Cross-References
+-------------------------
+
+An internal cross-reference is denoted by a Predoc inline marker on either side
+of the text together with angle brackets. The text must match a section or
+subsection name exactly (including case).
+
+````
+Refer to <CHARACTERS> for the complete list.
+````
+
+A cross-reference cannot be nested in other inline elements. A cross-reference
+cannot contain other inline elements.
+
+This is an *extension* to Markdown. These cross-references are to other sections
+or subsections in the current manpage.
+
+When rendered to `mdoc(7)`, an internal cross-reference produces an internal
+cross-reference using the ``Sx`` macro.
+
+Links
+-----
+
+A link is denoted by ``[`` and ``]`` on either side of the linked text. The URL
+must immediatelly following the ``]`` and be surrounded by ``(`` and ``)``.
+
+````
+I know [kung fu](https://example.org).
+````
+
+A link can be nested in emphasis text and strong text. A link can contain
+emphasis text and strong text.
+
+This is a *variation* on Markdown. The use of reference links is not supported.
+The use of a description after the URL is also not supported.
+
+When rendered to `mdoc(7)`, a link produces a hyperlink using the ``Lk`` macro.
+
+Optionals
+---------
+
+An optional is denoted by ``[`` and ``]`` enclosing arguments and/or options. An
+optional will only be parsed if its contents are some combination of arguments,
+options and the tokens ``...`` and ``|``.
+
+````
+Begin the training program using **train** [**--coop** | **--location**
+_location_].
+````
+
+An optional cannot be nested in other inline elements. An optional cannot
+contain other inline elements.
+
+This is an *extension* to Markdown. Optionals are intended to be used when an
+argument or option is not required to call a command.
+
+When rendered to `mdoc(7)`, an optional produces an optional part of the command
+line using the ``Oo`` and ``Oc`` macros.
+
+Options
+-------
+
+An option is denoted by ``**`` on either side of text. The option name must
+begin with ``-``. Long options begin with ``--``.
+
+````
+If flying is enabled, use **-f** or **--fly**.
+````
+
+An option cannot be nested in other inline elements. An option cannot contain
+other inline elements.
+
+This is a *variation* on Markdown. Options are intended to be used for what
+`mdoc(7)` calls command-line flags or command-line options. For strong text, use
+the ``__``.
+
+When rendered to `mdoc(7)`, an option produces a command option using the `Op`
+macro.
+
+Paths
+-----
+
+A path is denoted by a Predoc inline marker on either side of text. The text
+must contain at least one instance of ``/``.
+
+````
+Dodge `this/`.
+````
+
+A path cannot be nested in other inline elements. A path cannot contain other
+inline elements.
+
+This is a *variation* on Markdown. Paths are intended to be used for text that
+represents a path on the file system.
+
+When rendered to `mdoc(7)`, a path produces a file system path using the ``Pa``
+macro.
+
+Raw Text
+--------
+
+Raw text is denoted by ``` `` ``` on either side of text.
+
+````
+Just had a little ``deja vu``.
+````
+
+Raw text cannot be nested in links, emphasis text and strong text. It cannot
+contain other inline elements.
+
+This is a *variation* on Markdown. The use of `` ` `` is reserved for Predoc
+inline markers.
+
+When rendered to `mdoc(7)`, raw text produces inline literal display using the
+``Ql`` macro.
+
+Strong Text
+----------
+
+Strong text is denoted by ``__`` on either side of the text.
+
+````
+'In this mind is the key, __my__ key.'
+````
+
+Strong text can be nested in links and emphasis text. Strong text can contain
+links and emphasis text.
+
+This is a *variation* on Markdown. The use of ``**`` is reserved for commands
+and options and does not produce strong text. For commands and options, use
+``**``.
+
+When rendered to `mdoc(7)`, strong text produces text in a boldface font using
+the ``Sy`` macro.
+
+SEE ALSO
+========
+
+For further information:
+
+- The **predoc** project repository is hosted on
+  [GitHub](https://github.com/pyrmont/predoc).
+
+- The official website for Markdown is available at [Daring
+  Fireball](https://daringfireball.net/projects/markdown).
+
+- The development of **predoc** was influenced by John McFarlane's
+  [Djot](https://djot.net).
+
+HISTORY
+=======
+
+The **predoc** language was created in 2025 by Michael Camilleri.
