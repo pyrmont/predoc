@@ -290,7 +290,7 @@ This is a *variation* on Markdown. The use of ``#`` to denote atx-style headings
 is not supported.
 
 When rendered to `mdoc(7)`, a heading produces either a section heading using
-the ``Sh`` macro or a subsection heading using the ``Ss` macro.
+the ``Sh`` macro or a subsection heading using the ``Ss`` macro.
 
 Ordered Lists
 -------------
