@@ -193,10 +193,10 @@ consequence of this decision is that **predoc** fenced code blocks are denoted
 by 4 backticks on a line.
 
 Inline-level extensions are denoted by __Predoc inline markers__. A Predoc
-inline markers a single backtick (`` ` ``) on either side of an inline element.
-As with the block markers, the inline marker has been chosen deliberately
-because it degrades gracefully and, as a consequence, raw text is denoted by 2
-backticks.
+inline marker is a single backtick (`` ` ``) on either side of an inline
+element. As with the block markers, the inline marker has been chosen
+deliberately because it degrades gracefully and, as a consequence, raw text is
+denoted by 2 backticks.
 
 BLOCK ELEMENTS
 ==============
