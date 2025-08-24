@@ -91,38 +91,41 @@ License: ./LICENSE
 The recognised keys are as follows:
 
 - _Title_:
-  The title is written in capital letters followed by a number in parentheses.
-  This number corresponds to the manual section number. See the listing for the
-  _Dt_ macro in `mdoc(7)` for more information on the manual sections into which
+  A word written in capital letters followed by a number in parentheses. This
+  number corresponds to the manual section number. See the listing for the _Dt_
+  macro in `mdoc(7)` for more information on the manual sections into which
   manpages are categorised.
 
 - _Authors_:
-  Authors are a comma-delimited list (``, ``). An author consists of a name
+  A comma-delimited list (``, ``). An author consists of a name
   followed by an optional e-mail address in angle brackets.
 
 - _Date_:
-  The date is a combination of day, month and year. There are three valid
+  A combination of day, month and year. There are three valid
   formats for dates:
 
   1. ``%Y-%m-%d``
   2. ``%d %B %Y``
   3. ``%B %d, %Y``
 
-  where the format specifiers have the same meaning as `strftime(3)`. `mdoc(7)`
+  The format specifiers have the same meaning as `strftime(3)`. `mdoc(7)`
   manpages use dates in the format ``%B %d, %Y`` and the date will be converted
   to this format by `predoc(1)`.
 
 - _Project_:
-  The project is the name of the project. This is used togther with _Version_
-  for the `.Os` macro that `man(1)` will print at the bottom of a manpage.
+  The name of the project. `mdoc(7)` manpages can include an ``.Os`` macro in
+  the prologue. When rendered to `mdoc(7)`, `man(1)` typically prints a value
+  at the bottom of the manpage. `predoc(1)` will use this value together with
+  _Version_ as an argument to `.Os`.
 
 - _Version_:
-  The version is the version of the project. This is used together with
-  _Project_ for the `.Os` macro that `man(1)` will print at the bottom of the
-  manpage.
+  The version of the project. `mdoc(7)` manpages can include an ``.Os`` macro
+  in the prologue. When rendered to `mdoc(7)`, `man(1)` typically prints a
+  value at the bottom of the manpage. `predoc(1)` will use this value together
+  with _Project_ as an argument to `.Os`.
 
 - _License_:
-  The licence is a path to a file that contains the licence that applies to the
+  A path to a file that contains the licence that applies to the
   document. The content of this file is read in by `predoc(1)` and output into a
   commented block at the beginning of the `mdoc(7)` document.
 
