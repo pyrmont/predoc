@@ -526,7 +526,7 @@ of the text together with angle brackets. The text must match a section or
 subsection name exactly (including case).
 
 ````
-Refer to <CHARACTERS> for the complete list.
+Refer to `<CHARACTERS>` for the complete list.
 ````
 
 A cross-reference cannot be nested in other inline elements. A cross-reference
@@ -542,7 +542,7 @@ Links
 -----
 
 A link is denoted by ``[`` and ``]`` on either side of the linked text. The URL
-must immediatelly following the ``]`` and be surrounded by ``(`` and ``)``.
+must immediately following the ``]`` and be surrounded by ``(`` and ``)``.
 
 ````
 I know [kung fu](https://example.org).
@@ -564,8 +564,8 @@ optional will only be parsed if its contents are some combination of arguments,
 options and the tokens ``...`` and ``|``.
 
 ````
-Begin the training program using **train** [**--coop** | **--location**
-_location_].
+Begin the training program using **train**
+[**--coop** | **--location** _location_].
 ````
 
 An optional cannot be nested in other inline elements. An optional cannot
