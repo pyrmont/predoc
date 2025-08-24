@@ -156,10 +156,10 @@ The first section must be the NAME section and a valid manpage must contain a
 NAME section. The NAME section should include at least one instance of the name
 of the subject of the manpage followed by a description.
 
-By convention, most manpages should also include a SYNOPSIS and DESCRIPTION
-section. As with `mdoc(7)` documents, the sections in a **predoc** document are
-usually ordered as they appear above. Additional sections can be added where
-appropriate.
+By convention, most manpages should also include SYNOPSIS and DESCRIPTION
+sections. As with `mdoc(7)` documents, the sections in a **predoc** document
+are usually ordered as they appear above. Additional sections can be added
+where appropriate.
 
 For more information about sections, see `mdoc(7)`.
 
