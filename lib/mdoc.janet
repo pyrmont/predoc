@@ -273,7 +273,7 @@
   (buffer-line b ".Pp")
   (buffer-line b ".Bl -tag -width Ds" (if loose? "" " -compact"))
   (each item (get node :value)
-    (buffer-line b ".It Xo ")
+    (buffer-line b ".It Xo")
     (set needs-pp? false)
     (each el (get-in item [:value 0 :value])
       (case (type el)
