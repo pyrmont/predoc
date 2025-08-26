@@ -606,7 +606,7 @@
     :ii-h (* (! :ii-d) '(to (+ :ii-d :nl)) :ii-d)
     :ii-b (group (some (if-not :ii-m :line)))
     :ii-d (* " -" :nl)
-    # tag list item
+    # tagged list item
     :ti (some (/ (* :loose? :ti-m :ti-t :ti-b) ,make-ti))
     :ti-m (* :indent '(* "-" :hs+))
     :ti-t (* (! :ti-d) '(to (+ :ti-d :nl)) :ti-d)
