@@ -366,6 +366,7 @@ When rendered to `mdoc(7)`, an unordered list produces a bulleted list using the
 ``Bl`` macro with the arguments  ``-bullet`` and ``-offset 3n``. If the list is
 'tight' (i.e., there are no blank lines between elements), the arguments also
 include ``-compact``.
+
 Literal mdoc
 ------------
 
@@ -626,6 +627,22 @@ be used for environment variables.
 
 When rendered to `mdoc(7)`, an environment variable will produce an environment
 variable using the ``Ev`` macro.
+
+Line breaks
+-----------
+
+A break is denoted by ``  `` (two spaces) before a new line.
+
+````
+I used to eat there...  
+Really good noodles.
+````
+
+A line break cannot be nested in other inline elements. A line break cannot
+contain other inline elements.
+
+When rendered to `mdoc(7)`, a line break will produce a line break using
+`roff(7)`'s **br** request.
 
 Links
 -----
