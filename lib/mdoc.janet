@@ -6,7 +6,7 @@
 (def- sq 39)
 (def- po 40)
 (def- pc 41)
-(def- mi 45)
+(def- ms 45)
 (def- fs 46)
 (def- bo 91)
 (def- bs 92)
@@ -28,7 +28,7 @@
 
 (defn buffer-esc [b s &opt inline?]
   (def escapes
-    {bo "\\(lB" bs "\\e" dq "\\(dq" sq "\\(aq"})
+    {bo "\\(lB" bs "\\e" dq "\\(dq" fs "\\&." sq "\\(aq"})
   (var i 0)
   (while (def ch (get s i))
     (buffer/push b (get escapes ch ch))
@@ -108,10 +108,12 @@
 (defn- render-arg [b node]
   (def [macro value]
     (case (get node :kind)
+      :mod
+      ["Cm \\&" (first (get node :value))]
       :opt
       ["Fl " (first (get node :value))]
       :param
-      ["Ar " (first (get node :value))]
+      ["Ar \\&" (first (get node :value))]
       :etc
       ["No " "..."]))
   (buffer-line b "." macro value))
@@ -140,7 +142,7 @@
           (++ i)
           (buffer/push b "\\e"))
         # hyphen
-        (and (= mi ch) (zero? i) (ending-nl? b))
+        (and (= ms ch) (zero? i) (ending-nl? b))
         (do
           (buffer/popn b 1)
           (buffer/push b " Ns -"))
@@ -157,16 +159,24 @@
     (buffer/push b "\\c"))
   (ensure-nl b))
 
+# dependent render- functions
+
 (defn- render-args [b node]
   (def an-optional? (= :optional (get node :kind)))
+  (def an-alternate? (= :alternate (get node :kind)))
   (when an-optional?
     (buffer-line b ".Oo"))
   (var no-space? false)
+  (var first? true)
   (each arg (get node :value)
     (when (= :sequence (get node :kind))
       (if (and (not= " " arg) no-space?)
         (buffer-cont b " Ns"))
       (set no-space? (not= " " arg)))
+    (when an-alternate?
+      (if first?
+        (set first? false)
+        (buffer-cont b " No | ")))
     (cond
       (= " " arg)
       (buffer-cont b arg)
@@ -200,6 +210,9 @@
     (render b v))
   (buffer-line b ".Ed"))
 
+(defn- render-break [b]
+  (buffer-line b ".br"))
+
 (defn- render-code [b node]
   (buffer-line b ".Bd -literal -offset indent")
   (buffer-esc b (get node :value))
@@ -212,7 +225,7 @@
     (if (= section "NAME")
       (buffer-line b ".Nm " name)
       (buffer-line b ".Nm"))
-    (buffer-line b ".Ic " name)))
+    (buffer-line b ".Ic \\&" name)))
 
 (defn- render-comment [b node]
   (each line (string/split "\n" (get node :value))
@@ -268,12 +281,16 @@
     (buffer/push b " \"" (get args 1) "\""))
   (buffer/push b nl))
 
-(defn- render-list-tag [b node]
+(defn- render-list-with-head [b node]
   (def loose? (get node :loose?))
   (buffer-line b ".Pp")
-  (buffer-line b ".Bl -tag -width Ds" (if loose? "" " -compact"))
+  (cond
+    (= :tl (get node :kind))
+    (buffer-line b ".Bl -tag -width Ds" (if loose? "" " -compact"))
+    (= :il (get node :kind))
+    (buffer-line b ".Bl -ohang -offset Ds" (if loose? "" " -compact")))
   (each item (get node :value)
-    (buffer-line b ".It Xo")
+    (buffer-line b ".It Xo ")
     (set needs-pp? false)
     (each el (get-in item [:value 0 :value])
       (case (type el)
@@ -292,7 +309,7 @@
   (buffer-line b ".El")
   (set needs-pp? true))
 
-(defn- render-list-other [b node]
+(defn- render-list-without-head [b node]
   (def loose? (get node :loose?))
   (def offset "3n")
   (buffer-line b ".Pp")
@@ -309,9 +326,15 @@
   (buffer-line b ".El"))
 
 (defn- render-list [b node]
-  (if (= :tl (get node :kind))
-    (render-list-tag b node)
-    (render-list-other b node)))
+  (def with-head? {:tl true :il true})
+  (if (get with-head? (get node :kind))
+    (render-list-with-head b node)
+    (render-list-without-head b node)))
+
+(defn- render-mdoc [b node]
+  (buffer-line b ".Pp")
+  (buffer-line b (get node :value))
+  (set needs-pp? true))
 
 (defn- render-para [b node para-break?]
   (when para-break?
@@ -388,7 +411,7 @@
     (buffer/push b " \"" (string/repeat " " w) "\""))
   (buffer/push b nl)
   (each row rows
-    (buffer-line b ".It Xo")
+    (buffer-line b ".It Xo ")
     (var first? true)
     (each cell row
       (if first?
@@ -433,6 +456,8 @@
     (render-h b node)
     :list
     (render-list b node)
+    :mdoc
+    (render-mdoc b node)
     :paragraph
     (render-para b node para-break?)
     # inlines
@@ -440,6 +465,8 @@
     (render-arg b node)
     :args
     (render-args b node)
+    :break
+    (render-break b)
     :command
     (render-command b node)
     :emphasis

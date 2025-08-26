@@ -42,7 +42,7 @@
     ```
     \\*foo*
     ```)
-  (def expect5 ["\\\\" {:type :emphasis :value ["foo"]}])
+  (def expect5 ["\\" {:type :emphasis :value ["foo"]}])
   (is (== expect5 (parse-inlines input5))))
 
 (deftest inline-st
@@ -241,7 +241,16 @@
     ```
     \`foo\`
     ```)
-  (def expect ["\\`foo\\`"])
+  (def expect ["`" "foo" "`"])
   (is (== expect (parse-inlines input))))
+
+(deftest inline-breaks
+  (def input1
+    ```
+    foo\
+    bar
+    ```)
+  (def expect1 ["foo" {:type :break} "bar"])
+  (is (== expect1 (parse-inlines input1))))
 
 (run-tests!)

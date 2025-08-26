@@ -47,7 +47,7 @@
     (when (table? node)
       (each k ks
         (put node k nil)
-        (remove-keys ks (get node :value))))))
+        (remove-keys ks (get node :value []))))))
 
 (defn- match-delims [& args]
   (def res @[])
@@ -96,7 +96,15 @@
         (if (< s-begin begin)
           (array/push siblings (string/slice s s-begin begin)))
         (set s-begin end)
-        (array/push siblings m))
+        (cond
+          # backslashed characters
+          (= :esc (get m :type))
+          (array/push siblings (string/slice s (inc begin) end))
+          # hard breaks
+          (= :break (get m :type))
+          (array/push siblings m)
+          # default
+          (array/push siblings m)))
       ))
   (if (< s-begin (length s))
     (array/push res (string/slice s s-begin)))
@@ -104,11 +112,12 @@
   res)
 
 (def- i-grammar*
-  ~{:main (/ '(* (any (+ :predoc :delim :ln :raw :ch)) -1) ,match-delims)
+  ~{:main (/ '(* (any (+ :predoc :delim :ln :raw :br :esc :ch)) -1) ,match-delims)
     # helpers
     :t (constant true)
     :f (constant false)
     :ch (+ (* "\\" (set "\\`*_{}[]()#+-.!")) 1)
+    :qch (+ (* "\\" '(set "\\`*_{}[]()#+-.!")) '1)
     :hs " "
     :hs* (any :hs)
     :hs+ (some :hs)
@@ -126,7 +135,7 @@
     :cmd (/ (* :type (constant :command)
                :begin ($)
                "**"
-               :value (group '(* (if-not (set "-*") 1) (any (if-not "*" 1))))
+               :value (group (% (* (if-not (set "-*") :qch) (any (if-not "*" :qch)))))
                "**"
                :end ($)) ,table)
     # predoc: arguments
@@ -149,18 +158,27 @@
     :args-seq (/ (* :type (constant :args)
                     :kind (constant :sequence)
                     :begin ($)
-                    :value (group (+ (* (+ (* :arg-o :args-opt) :arg)
-                                        (some (* '(+ "=" :hs) :hs* (+ (* :arg-o :args-opt) :arg :arg-e))))
-                                     (* :arg-o :args-opt)))
+                    :value (group (+ (* (+ :args-oopt :arg)
+                                        (some (* '(+ "=" :hs) :hs* (+ :args-opt :args-oopt :arg :arg-e))))
+                                     :args-oopt))
                     :end ($))
                  ,table)
+    :args-oopt (* :arg-o :args-opt)
     # predoc: argument
-    :arg (+ :arg-o :arg-p)
+    :arg (+ :arg-m :arg-o :arg-p)
+    :arg-m (/ (* :type (constant :arg)
+                 :kind (constant :mod)
+                 :begin ($)
+                 "***"
+                 :value (group '(some (if-not "*" :ch)))
+                 "***"
+                 :end ($))
+              ,table)
     :arg-o (/ (* :type (constant :arg)
                  :kind (constant :opt)
                  :begin ($)
                  "**-"
-                 :value (group '(some (if-not "*" 1)))
+                 :value (group '(some (if-not "*" :ch)))
                  "**"
                  :end ($))
               ,table)
@@ -168,7 +186,7 @@
                  :kind (constant :param)
                  :begin ($)
                  "_"
-                 :value (group '(some (if-not "_" 1)))
+                 :value (group '(some (if-not "_" :ch)))
                  "_"
                  :end ($))
               ,table)
@@ -252,12 +270,23 @@
               :value (group '(* (thru "://") (to ">")))
               ">"
               :end ($)) ,table)
+    # breaks
+    :br (/ (* :type (constant :break)
+              :begin ($)
+              "\\\n"
+              :end ($)), table)
     # raw
     :raw (/ (* :type (constant :raw)
                :begin ($)
                (only-tags (<- (some "`") :rd))
                :value (group '(to (backmatch :rd)))
                (backmatch :rd)
+               :end ($)) ,table)
+    # backslashed characters
+    :esc (/ (* :type (constant :esc)
+               :begin ($)
+               (> "\\")
+               :ch
                :end ($)) ,table)
     })
 
@@ -280,7 +309,11 @@
         (break)))
     (def unquoted (if (zero? pos) line (string/slice line pos)))
     (if (not no-trim?)
-      (buffer/push res (string/trim unquoted))
+      (do
+        (buffer/push res (string/trim unquoted))
+        (when (string/has-suffix? "  " unquoted)
+          (set first? true)
+          (buffer/push res "\\\n")))
       (do
         (var i 0)
         (while (def c (get line i))
@@ -323,6 +356,23 @@
     :value (-> (join " " qindents indent [line])
                (parse-inlines))})
 
+(defn- make-ii [loose? [qindents indent] marker f-line lines]
+  (def hang (+ indent (length marker)))
+  (def head @{:type :paragraph
+              :indent hang
+              :value (parse-inlines f-line)})
+  (def body @{:type :paragraph
+              :indent hang
+              :value (-> (join " " qindents hang lines)
+                         (parse-inlines))})
+  @{:type :list-item
+    :kind :il
+    :hang hang
+    :indent indent
+    :loose? loose?
+    :qindents qindents
+    :value @[head body]})
+
 (defn- make-indent [qstrs istr]
   (def qindents @[])
   (var qsum 0)
@@ -355,6 +405,12 @@
     :loose? false
     :qindents (get child :qindents)
     :value @[child]})
+
+(defn- make-mdoc [[qindents indent] & lines]
+  @{:type :mdoc
+    :indent indent
+    :qindents qindents
+    :value (join "\n" qindents indent lines true)})
 
 (defn- make-para [[qindents indent] & lines]
   @{:type :paragraph
@@ -512,8 +568,7 @@
               (some (* :nl ':w+ ": " '(to :nl))) :nl
               (at-least 3 "-")) ,make-fm)
     # blocks
-    :block (+ :cmnt :tblp :code :ti :li :h :para)
-    :block-m (+ :pre-m :code-o :ti-m :li-m)
+    :block (+ :cmnt :mdoc :tblp :code :ii :ti :li :h :para)
     # quote marker
     :qt-m (* "> ")
     # predoc marker
@@ -524,6 +579,12 @@
     :cmnt-c (* :pre-m)
     :cmnt-b (some (if-not :cmnt-c :cmnt-l))
     :cmnt-l (* :hs* "// " '(to :nl) :nl)
+    # mdoc
+    :mdoc (/ (* :indent :mdoc-o :mdoc-b :mdoc-c) ,make-mdoc)
+    :mdoc-o (* :pre-m :nl (> (* :hs* ".")))
+    :mdoc-c (* :pre-m)
+    :mdoc-b (some (if-not :mdoc-c :mdoc-l))
+    :mdoc-l (* :hs* '(to :nl) :nl)
     # pipe table
     :tblp (/ (* :indent :tblp-o (some :tblp-tr) :tblp-c) ,make-tblp)
     :tblp-o (* :pre-m :nl :hs* (at-least 3 (+ "-" "|")) :nl)
@@ -539,12 +600,18 @@
     :code-c (* :hs* (backmatch :cf))
     :code-b (any (if-not :code-c :code-l))
     :code-l (* '(to :nl) :nl)
+    # indented list item
+    :ii (some (/ (* :loose? :ii-m :ii-h :ii-b) ,make-ii))
+    :ii-m (* :indent '(* "-" :hs+))
+    :ii-h (* (! :ii-d) '(to (+ :ii-d :nl)) :ii-d)
+    :ii-b (group (some (if-not :ii-m :line)))
+    :ii-d (* " -" :nl)
     # tag list item
     :ti (some (/ (* :loose? :ti-m :ti-t :ti-b) ,make-ti))
     :ti-m (* :indent '(* "-" :hs+))
-    :ti-t (* (! :ti-d) '(to :ti-d) :ti-d)
-    :ti-b (group (some (if-not :ti-m :line)))
-    :ti-d (* ":" :nl)
+    :ti-t (* (! :ti-d) '(to (+ :ti-d :nl)) :ti-d)
+    :ti-b (group (any (if-not :ti-m :line)))
+    :ti-d (* ":" :nl (> (not :nl)))
     # list item
     :li (some (/ (* :loose? :li-m :li-b) ,make-li))
     :li-m (* :indent '(+ (* :d+ "." :hs+) (* (set "-*") :hs+)))
