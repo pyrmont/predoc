@@ -1,0 +1,78 @@
+---
+Title: RMDIR(1)
+Date: 2013-03-15
+License: ./rmdir.1.license
+---
+
+NAME
+====
+
+**rmdir** - remove directories
+
+SYNOPSIS
+========
+
+**rmdir** [**-pv**] _directory_ ...
+
+DESCRIPTION
+===========
+
+The **rmdir** utility removes the directory entry specified by each _directory_
+argument, provided it is empty.
+
+Arguments are processed in the order given. In order to remove both a parent
+directory and a subdirectory of that parent, the subdirectory must be specified
+first so the parent directory is empty when **rmdir** tries to remove it.
+
+The following options are available:
+
+- **-p**:
+  Each _directory_ argument is treated as a pathname of which all components
+  will be removed, if they are empty, starting with the last most component.
+  (See `rm(1)` for fully non-discriminant recursive removal.)
+
+- **-v**:
+  Be verbose, listing each directory as it is removed.
+
+EXIT STATUS
+===========
+
+The **rmdir** utility exits with one of the following values:
+
+- 0:
+  Each directory entry specified by a _directory_ operand referred to an empty
+  directory and was removed successfully.
+
+- >0:
+  An error occurred.
+
+EXAMPLES
+========
+
+Remove the directory _foobar_, if it is empty:
+
+````
+$ rmdir foobar
+````
+
+Remove all directories up to and including _cow_, stopping at the first
+non-empty directory (if any):
+
+````
+$ rmdir -p cow/horse/monkey
+````
+
+SEE ALSO
+========
+
+`rm(1)`
+
+STANDARDS
+=========
+
+The **rmdir** utility is expected to be IEEE Std 1003.2 ("POSIX.2") compatible.
+
+HISTORY
+=======
+
+A **rmdir** command appeared in Version 1 AT&T UNIX.
