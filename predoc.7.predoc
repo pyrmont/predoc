@@ -245,29 +245,6 @@ supported.
 When rendered to `mdoc(7)`, a code block produces an indented display block
 using the ``Bd`` macro with the arguments ``-literal`` and ``-offset indent``.
 
-Comments
---------
-
-A comment is denoted by a Predoc block marker. Each line is prefixed by ``//``.
-
-````
-```
-// Everybody falls the first time.
-```
-````
-
-A comment cannot be nested inside other blocks. Other blocks cannot be nested
-inside comments. Comments do not support indenting/quoting.
-
-This is an *extension* to Markdown. They will not appear in the visible output
-but will be in the source that is generated. It is common practice to use
-comments in manpages to include licence information. Please note that in order
-to add a licence comment to the beginning of a document, use the _License_ key
-in the frontmatter (see `<Frontmatter>`).
-
-When rendered to `mdoc(7)`, a comment produces lines of text prefixed with the
-comment marker ``.\"``.
-
 Headings
 --------
 
@@ -292,8 +269,37 @@ is not supported.
 When rendered to `mdoc(7)`, a heading produces either a section heading using
 the ``Sh`` macro or a subsection heading using the ``Ss`` macro.
 
-Ordered Lists
--------------
+Lists (Indented)
+----------------
+
+An indented list is denoted by a ``- `` at the start of the first line, a `` -``
+at the end of the first line and then a body beginning on the second line.
+
+````
+- __Simulacra__ -
+  Simulacra are copies that depict things that
+  either had no original, or that no longer have
+  an original.
+
+- __Simulation__ -
+  Simulation is the imitation of the operation of
+  a real-world process or system over time.
+````
+
+An indented list can be nested in a blockquote or a list. The list item can contain a
+blockquote, code block, list or simple table.
+
+This is a *variation* on Markdown. An indented list is a list of heading/body
+pairs. By indenting the text, it is intended to be used to express conceptual
+hierarchy in the document in a visual way.
+
+When rendered to `mdoc(7)`, an indented list produces a list using the
+``Bl`` macro with the arguments ``-hang`` and ``-offset Ds``. If the list is
+'tight' (i.e., there are no blank lines between elements), the arguments also
+include ``-compact``.
+
+Lists (Ordered)
+---------------
 
 An ordered list is denoted by a number followed by a full stop/period and a
 space. The actual number used is not significant. The list items will be
@@ -312,6 +318,79 @@ When rendered to `mdoc(7)`, an ordered list produces a numbered list using the
 ``Bl`` macro with the arguments ``-enum`` and ``-offset 3n``. If the list is
 'tight' (i.e., there are no blank lines between elements), the arguments also
 include ``-compact``.
+
+Lists (Tagged)
+--------------
+
+A tagged list is denoted by a ``-`` at the start of the first line, a ``:`` at
+the end of the first line and then a body beginning on the second line.
+
+````
+- **Dojo**:
+  A place for sparring.
+
+- **Street**:
+  A place for concentration.
+````
+
+A tagged list can be nested in a blockquote or a list. The list item can contain
+a blockquote, code block, list or simple table.
+
+This is a *variation* on Markdown. A tagged list is a list of tag/body pairs.
+Tagged lists are used idiomatically in manpages for argument lists but can be
+used for other content.
+
+When rendered to `mdoc(7)`, a tagged list produces a tagged list using the
+``Bl`` macro with the arguments ``-tag`` and ``-width Ds``. If the list is
+'tight' (i.e., there are no blank lines between elements), the arguments also
+include ``-compact``.
+
+Lists (Unordered)
+---------------
+
+An unordered list is denoted by a line beginning with ``- `` or ``* ``.
+
+````
+- phone
+- sunglasses
+- jacket
+````
+
+An unordered list can be nested in a blockquote or a list. A list item can
+contain a blockquote, code block, list or simple table.
+
+This is a *variation* on Markdown. The use of ``+`` to mark an unordered list
+item is not supported to simplify parsing.
+
+When rendered to `mdoc(7)`, an unordered list produces a bulleted list using the
+``Bl`` macro with the arguments  ``-bullet`` and ``-offset 3n``. If the list is
+'tight' (i.e., there are no blank lines between elements), the arguments also
+include ``-compact``.
+Literal mdoc
+------------
+
+Literal mdoc is denoted by a Predoc block marker. The first line must begin with
+a ``.``.
+
+````
+```
+.\" <Train sound>
+That is the sound of
+.Sy inevitability .
+```
+````
+
+Literal mdoc can be nested inside blockquotes and lists. Literal mdoc cannot
+contain other block elements. If literal mdoc is indented/quoted, the
+indent/quote is removed from each line of the literal mdoc.
+
+This is an *extension* to Markdown. Literal mdoc provides an escape hatch for
+Predoc in a similar way to how literal HTML is permitted in Markdown. While the
+example above shows a potential use of literal mdoc to be comments, in order to
+add a licence comment to the beginning of a document, use the _License_ key in
+the frontmatter (see `<Frontmatter>`).
+
+When rendered to `mdoc(7)`, literal mdoc is passed straight through.
 
 Simple Tables
 -------------
@@ -339,54 +418,6 @@ When rendered to `mdoc(7)`, a simple table produces a columnated list using the
 ``Bl`` macro with the argument ``-column``. The width of each column will be set
 to avoid wrapping.
 
-Tag Lists
----------
-
-A tag list is denoted by a ``-`` at the start of the first line, a ``:`` at the
-end of the first line and then a body beginning on the second line.
-
-````
-- **Dojo**:
-  A place for sparring.
-
-- **Street**:
-  A place for concentration.
-````
-
-A tag list can be nested in a blockquote or a list. The list item can contain a
-blockquote, code block, list or simple table.
-
-This is a *variation* on Markdown. A tag list is a list of tag/body pairs. Tag
-lists are used idiomatically in manpages for argument lists but can be used for
-other content.
-
-When rendered to `mdoc(7)`, a tag list produces a tagged list using the
-``Bl`` macro with the arguments ``-tag`` and ``-width Ds``. If the list is
-'tight' (i.e., there are no blank lines between elements), the arguments also
-include ``-compact``.
-
-Unordered Lists
----------------
-
-An unordered list is denoted by a line beginning with ``- `` or ``* ``.
-
-````
-- phone
-- sunglasses
-- jacket
-````
-
-An unordered list can be nested in a blockquote or a list. A list item can
-contain a blockquote, code block, list or simple table.
-
-This is a *variation* on Markdown. The use of ``+`` to mark an unordered list
-item is not supported to simplify parsing.
-
-When rendered to `mdoc(7)`, an unordered list produces a bulleted list using the
-``Bl`` macro with the arguments  ``-bullet`` and ``-offset 3n``. If the list is
-'tight' (i.e., there are no blank lines between elements), the arguments also
-include ``-compact``.
-
 Paragraphs
 ----------
 
@@ -405,24 +436,81 @@ Inline elements are elements that exist within a block element. Some inline
 elements can be nested and some cannot. Each syntax description below notes when
 an inline element can be nested.
 
-Arguments
----------
+Arguments (Modifiers)
+---------------------
 
-An argument is denoted by ``_`` on either side of the text.
+A modifier is denoted by ``***`` on either side of text.
+
+````
+All I see is ***blonde***, ***brunette**, ***redhead***.
+````
+
+A modifier cannot be nested in other inline elements. A modifier cannot contain
+other inline elements.
+
+This is a *variation* on Markdown. Modifiers are intended to be used for what
+`mdoc(7)` calls command modifiers. This is typically fixed text that is provided
+as a parameter to the command.
+
+Arguments (Optionals)
+---------------------
+
+An optional is denoted by ``[`` and ``]`` enclosing arguments and/or options. An
+optional will only be parsed if its contents are some combination of arguments,
+options and the tokens ``...`` and ``|``.
+
+````
+Begin the training program using **train**
+[**--coop** | **--location** _location_].
+````
+
+An optional cannot be nested in other inline elements. An optional cannot
+contain other inline elements.
+
+This is an *extension* to Markdown. Optionals are intended to be used when an
+argument or option is not required to call a command.
+
+When rendered to `mdoc(7)`, an optional produces an optional part of the command
+line using the ``Oo`` and ``Oc`` macros.
+
+Arguments (Options)
+-------------------
+
+An option is denoted by ``**`` on either side of text. The option name must
+begin with ``-``. Long options begin with ``--``.
+
+````
+If flying is enabled, use **-f** or **--fly**.
+````
+
+An option cannot be nested in other inline elements. An option cannot contain
+other inline elements.
+
+This is a *variation* on Markdown. Options are intended to be used for what
+`mdoc(7)` calls command-line flags or command-line options. For strong text, use
+the ``__``.
+
+When rendered to `mdoc(7)`, an option produces a command option using the `Op`
+macro.
+
+Arguments (Parameters)
+----------------------
+
+A parameter is denoted by ``_`` on either side of the text.
 
 ````
 It's the _question_ that drives us.
 ````
 
-An argument cannot be nested in other inline elements. An argument cannot
+A parameter cannot be nested in other inline elements. A paramater cannot
 contain other inline elements.
 
-This is a *variation* on Markdown. Arguments are intended to be used for what
+This is a *variation* on Markdown. Parameters are intended to be used for what
 `mdoc(7)` calls 'command arguments' (some people may refer to these as
 'command-line parameters' to distinguish from 'command-line options'). For
 emphasis text, use ``*``.
 
-When rendered to `mdoc(7)`, an argument produces a command argument using the
+When rendered to `mdoc(7)`, a parameter produces a command argument using the
 `Ar` macro.
 
 Automatic Links
@@ -461,46 +549,8 @@ the ``Ic`` macro. The exception to this is if the command matches the program
 name provided to `predoc(1)`. In this case, a command produces the name of the
 manpage using the ``Nm`` macro.
 
-Emphasis Text
-------------
-
-Emphasis text is denoted by ``*`` on either side of the text.
-
-````
-'I hate this place. This *zoo*.'
-````
-
-Emphasis text can be nested in links and strong text. Emphasis text can contain
-links and strong text.
-
-This is a *variation* on Markdown. The use of ``_`` is reserved for arguments
-and does not produce emphasis text. For command arguments, use ``_``.
-
-When rendered to `mdoc(7)`, emphasis text produces text in an italic font using
-the ``Em`` macro.
-
-Environment Variables
----------------------
-
-An environment variable is denoted by a Predoc inline marker on either side of
-the text. The text must be written in uppercase but can begin with a ``$`` and
-contain ``_``.
-
-````
-Set `$HAIR` to the desired colour.
-````
-
-An environment variable cannot be nested in other inline elements. An
-environment variable cannot contain other inline elements.
-
-This is an *extension* to Markdown. As the name suggests, they are intended to
-be used for environment variables.
-
-When rendered to `mdoc(7)`, an environment variable will produce an environment
-variable using the ``Ev`` macro.
-
-External Cross-References
--------------------------
+Cross-References (External)
+---------------------------
 
 An external cross-reference is denoted by a Predoc inline marker on either side
 of the text. The text must end in a number in parentheses.
@@ -518,8 +568,8 @@ manpages. The number in parentheses is the number of the manual section.
 When rendered to `mdoc(7)`, an external cross-reference produces a
 cross-reference to another manual page using the ``Xr`` macro.
 
-Internal Cross-References
--------------------------
+Cross-References (Internal)
+--------------------------
 
 An internal cross-reference is denoted by a Predoc inline marker on either side
 of the text together with angle brackets. The text must match a section or
@@ -538,6 +588,45 @@ or subsections in the current manpage.
 When rendered to `mdoc(7)`, an internal cross-reference produces an internal
 cross-reference using the ``Sx`` macro.
 
+Emphasis Text
+------------
+
+Emphasis text is denoted by ``*`` on either side of the text.
+
+````
+'I hate this place. This *zoo*.'
+````
+
+Emphasis text can be nested in links and strong text. Emphasis text can contain
+links and strong text.
+
+This is a *variation* on Markdown. The use of ``_`` is reserved for arguments
+(parameters) and does not produce emphasis text. For command arguments, use
+``_``.
+
+When rendered to `mdoc(7)`, emphasis text produces text in an italic font using
+the ``Em`` macro.
+
+Environment Variables
+---------------------
+
+An environment variable is denoted by a Predoc inline marker on either side of
+the text. The text must be written in uppercase but can begin with a ``$`` and
+contain ``_``.
+
+````
+The value of `$PHONE` is 8110.
+````
+
+An environment variable cannot be nested in other inline elements. An
+environment variable cannot contain other inline elements.
+
+This is an *extension* to Markdown. As the name suggests, they are intended to
+be used for environment variables.
+
+When rendered to `mdoc(7)`, an environment variable will produce an environment
+variable using the ``Ev`` macro.
+
 Links
 -----
 
@@ -555,47 +644,6 @@ This is a *variation* on Markdown. The use of reference links is not supported.
 The use of a description after the URL is also not supported.
 
 When rendered to `mdoc(7)`, a link produces a hyperlink using the ``Lk`` macro.
-
-Optionals
----------
-
-An optional is denoted by ``[`` and ``]`` enclosing arguments and/or options. An
-optional will only be parsed if its contents are some combination of arguments,
-options and the tokens ``...`` and ``|``.
-
-````
-Begin the training program using **train**
-[**--coop** | **--location** _location_].
-````
-
-An optional cannot be nested in other inline elements. An optional cannot
-contain other inline elements.
-
-This is an *extension* to Markdown. Optionals are intended to be used when an
-argument or option is not required to call a command.
-
-When rendered to `mdoc(7)`, an optional produces an optional part of the command
-line using the ``Oo`` and ``Oc`` macros.
-
-Options
--------
-
-An option is denoted by ``**`` on either side of text. The option name must
-begin with ``-``. Long options begin with ``--``.
-
-````
-If flying is enabled, use **-f** or **--fly**.
-````
-
-An option cannot be nested in other inline elements. An option cannot contain
-other inline elements.
-
-This is a *variation* on Markdown. Options are intended to be used for what
-`mdoc(7)` calls command-line flags or command-line options. For strong text, use
-the ``__``.
-
-When rendered to `mdoc(7)`, an option produces a command option using the `Op`
-macro.
 
 Paths
 -----
@@ -635,7 +683,7 @@ When rendered to `mdoc(7)`, raw text produces inline literal display using the
 ``Ql`` macro.
 
 Strong Text
-----------
+-----------
 
 Strong text is denoted by ``__`` on either side of the text.
 
@@ -664,7 +712,7 @@ For further information:
 - The official website for Markdown is available at [Daring
   Fireball](https://daringfireball.net/projects/markdown).
 
-- The development of **predoc** was influenced by John McFarlane's
+- The design of **predoc** was influenced by John McFarlane's
   [Djot](https://djot.net).
 
 HISTORY
