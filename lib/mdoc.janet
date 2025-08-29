@@ -109,11 +109,11 @@
   (def [macro value]
     (case (get node :kind)
       :mod
-      ["Cm \\&" (first (get node :value))]
+      ["Cm \\&" (get node :value)]
       :opt
-      ["Fl " (first (get node :value))]
+      ["Fl " (get node :value)]
       :param
-      ["Ar \\&" (first (get node :value))]
+      ["Ar \\&" (get node :value)]
       :etc
       ["No " "..."]))
   (buffer-line b "." macro value))
@@ -220,18 +220,14 @@
   (set needs-pp? true))
 
 (defn- render-command [b node]
-  (def name (first (get node :value)))
+  (def name (get node :value))
   (if (= progname name)
     (if (= section "NAME")
       (buffer-line b ".Nm " name)
       (buffer-line b ".Nm"))
     (buffer-line b ".Ic \\&" name)))
 
-(defn- render-comment [b node]
-  (each line (string/split "\n" (get node :value))
-    (buffer-line b `.\" ` line)))
-
-(defn- render-emphasis [b v]
+(defn- render-emphasis [b node]
   (when (not= "Xo" (string/slice b -4 -2))
     (buffer/popn b 1)
     (buffer/push b "\\c\n"))
@@ -240,13 +236,14 @@
     (buffer/push b " "))
   (buffer/push b "Em ")
   (++ inline-macros)
-  (if (table? v)
-    (render b v)
-    (render-string b v))
+  (each v (get node :value)
+    (if (table? v)
+      (render b v)
+      (render-string b v)))
   (-- inline-macros))
 
-(defn- render-env-var [b s]
-  (buffer-line b ".Ev " s))
+(defn- render-env-var [b node]
+  (buffer-line b ".Ev " (get node :value)))
 
 (defn- render-h [b node]
   (buffer-line b ".")
@@ -265,9 +262,6 @@
     (do
       (set subsection v)
       (buffer-line b ".Ss " v))))
-
-(defn- render-incl [b s]
-  (buffer-line b ".In " s))
 
 (defn- render-link [b node]
   (def args (get node :value))
@@ -353,12 +347,12 @@
       (render b v)))
   (set needs-pp? true))
 
-(defn- render-path [b s]
+(defn- render-path [b node]
   (buffer-line b ".Eo")
-  (buffer-line b ".Pa " s)
+  (buffer-line b ".Pa " (get node :value))
   (buffer-line b ".Ec"))
 
-(defn- render-strong [b v]
+(defn- render-strong [b node]
   (when (not= "Xo" (string/slice b -4 -2))
     (buffer/popn b 1)
     (buffer/push b "\\c\n"))
@@ -367,9 +361,10 @@
     (buffer/push b " "))
   (buffer/push b "Sy ")
   (++ inline-macros)
-  (if (table? v)
-    (render b v)
-    (render-string b v))
+  (each v (get node :value)
+    (if (table? v)
+      (render b v)
+      (render-string b v)))
   (-- inline-macros))
 
 (defn- render-prologue [b node]
@@ -388,7 +383,8 @@
   (buffer-line b ".Os " (or (get fm :os)
                             (string (get fm :project) " " (get fm :version)))))
 
-(defn- render-raw [b s]
+(defn- render-raw [b node]
+  (def s (get node :value))
   (defn backticks? [s]
     (and (string/has-prefix? " `" s)
          (string/has-suffix? "` " s)))
@@ -438,14 +434,11 @@
 (varfn render [b node]
   (def para-break? needs-pp?)
   (set needs-pp? false)
-  (def v (first (get node :value)))
   (case (get node :type)
     # frontmatter
     :frontmatter
     (render-prologue b node)
     # blocks
-    :comment
-    (render-comment b node)
     :blockquote
     (render-blockquote b node)
     :table
@@ -470,23 +463,20 @@
     :command
     (render-command b node)
     :emphasis
-    (render-emphasis b v)
+    (render-emphasis b node)
     :env-var
-    (render-env-var b v)
-    :incl
-    (render-incl b v)
+    (render-env-var b node)
     :link
     (render-link b node)
     :path
-    (render-path b v)
+    (render-path b node)
     :raw
-    (render-raw b v)
+    (render-raw b node)
     :strong
-    (render-strong b v)
+    (render-strong b node)
     :xref
     (render-xref b node)
-    (error (string (get node :type) " not implemented"))
-    ))
+    (error (string (get node :type) " not implemented"))))
 
 (defn- add-note [b]
   (def fmt "%Y-%m-%dT%H:%M:%SZ")

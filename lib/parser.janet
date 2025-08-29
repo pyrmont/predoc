@@ -130,12 +130,12 @@
     :end (constant :end)
     :value (constant :value)
     # predoc
-    :predoc (+ :cmd :args :arg :incl :ev :path :xref)
+    :predoc (+ :cmd :args :arg :ev :path :xref)
     # predoc: command
     :cmd (/ (* :type (constant :command)
                :begin ($)
                "**"
-               :value (group (% (* (if-not (set "-*") :qch) (any (if-not "*" :qch)))))
+               :value (% (* (if-not (set "-*") :qch) (any (if-not "*" :qch))))
                "**"
                :end ($)) ,table)
     # predoc: arguments
@@ -170,7 +170,7 @@
                  :kind (constant :mod)
                  :begin ($)
                  "***"
-                 :value (group '(some (if-not "*" :ch)))
+                 :value '(some (if-not "*" :ch))
                  "***"
                  :end ($))
               ,table)
@@ -178,7 +178,7 @@
                  :kind (constant :opt)
                  :begin ($)
                  "**-"
-                 :value (group '(some (if-not "*" :ch)))
+                 :value '(some (if-not "*" :ch))
                  "**"
                  :end ($))
               ,table)
@@ -186,35 +186,28 @@
                  :kind (constant :param)
                  :begin ($)
                  "_"
-                 :value (group '(some (if-not "_" :ch)))
+                 :value '(some (if-not "_" :ch))
                  "_"
                  :end ($))
               ,table)
     :arg-e (/ (* :type (constant :arg)
                  :kind (constant :etc)
                  :begin ($)
-                 :value (group '"...")
+                 :value '"..."
                  :end ($))
               ,table)
-    # predoc: include directive
-    :incl (/ (* :type (constant :incl)
-                :begin ($)
-                "`#include <"
-                :value (group '(* (! ">") (to ">")))
-                ">`"
-                :end ($)) ,table)
     # predoc: environment variable
     :ev (/ (* :type (constant :env-var)
               :begin ($)
               "`"
-              :value (group '(* (? "$") (range "AZ") (any (+ (range "AZ") "_"))))
+              :value '(* (? "$") (range "AZ") (any (+ (range "AZ") "_")))
               "`"
               :end ($)) ,table)
     # predoc: path
     :path (/ (* :type (constant :path)
                 :begin ($)
                 "`"
-                :value (group '(* (any (if-not (set "/`") 1)) "/" (any (if-not "`" 1))))
+                :value '(* (any (if-not (set "/`") 1)) "/" (any (if-not "`" 1)))
                 "`"
                 :end ($)) ,table)
     # predoc: cross-reference
@@ -279,7 +272,7 @@
     :raw (/ (* :type (constant :raw)
                :begin ($)
                (only-tags (<- (some "`") :rd))
-               :value (group '(to (backmatch :rd)))
+               :value '(to (backmatch :rd))
                (backmatch :rd)
                :end ($)) ,table)
     # backslashed characters
@@ -326,12 +319,6 @@
 (defn- parse-inlines [s]
   (or (first (peg/match i-grammar s))
       (error "invalid text")))
-
-(defn- make-cmnt [[qindents indent] & lines]
-  @{:type :comment
-    :indent indent
-    :qindents qindents
-    :value (join "\n" qindents indent lines true)})
 
 (defn- make-code [[qindents indent] & lines]
   @{:type :code
@@ -568,17 +555,11 @@
               (some (* :nl ':w+ ": " '(to :nl))) :nl
               (at-least 3 "-")) ,make-fm)
     # blocks
-    :block (+ :cmnt :mdoc :tblp :code :ii :ti :li :h :para)
+    :block (+ :mdoc :tblp :code :ii :ti :li :h :para)
     # quote marker
     :qt-m (* "> ")
     # predoc marker
     :pre-m (* :hs* (3 "`"))
-    # comment
-    :cmnt (/ (* :indent :cmnt-o :cmnt-b :cmnt-c) ,make-cmnt)
-    :cmnt-o (* :pre-m :nl)
-    :cmnt-c (* :pre-m)
-    :cmnt-b (some (if-not :cmnt-c :cmnt-l))
-    :cmnt-l (* :hs* "// " '(to :nl) :nl)
     # mdoc
     :mdoc (/ (* :indent :mdoc-o :mdoc-b :mdoc-c) ,make-mdoc)
     :mdoc-o (* :pre-m :nl (> (* :hs* ".")))
