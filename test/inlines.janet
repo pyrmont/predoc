@@ -117,7 +117,7 @@
   (is (== expect2 (parse-inlines input2)))
   (def input3
     ```
-    [**--foo** _bar_ | **--baz** | _qux_]
+    [**--foo** _bar_ | **--baz** | ***qux***]
     ```)
   (def expect3
     [{:kind :optional
@@ -139,7 +139,7 @@
           {:kind :opt
            :type :arg
            :value "-baz"}
-          {:kind :param
+          {:kind :mod
            :type :arg
            :value "qux"}]}]}])
   (is (== expect3 (parse-inlines input3)))
