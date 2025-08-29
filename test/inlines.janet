@@ -78,7 +78,7 @@
     ```
     **foo**
     ```)
-  (def expect [{:type :command :value ["foo"]}])
+  (def expect [{:type :command :value "foo"}])
   (is (== expect (parse-inlines input))))
 
 (deftest inline-args
@@ -92,10 +92,10 @@
       :value [
         {:kind :opt
          :type :arg
-         :value ["-foo"]}
+         :value "-foo"}
         {:kind :param
          :type :arg
-         :value ["bar"]}]}])
+         :value "bar"}]}])
   (is (== expect1 (parse-inlines input1)))
   (def input2
     ```
@@ -107,13 +107,13 @@
       :value [
         {:kind :opt
          :type :arg
-         :value ["f"]}
+         :value "f"}
         {:kind :optional
          :type :args
          :value [
            {:kind :param
             :type :arg
-            :value ["oo"]}]}]}])
+            :value "oo"}]}]}])
   (is (== expect2 (parse-inlines input2)))
   (def input3
     ```
@@ -131,17 +131,17 @@
             :value [
               {:kind :opt
                :type :arg
-               :value ["-foo"]}
+               :value "-foo"}
               " "
               {:kind :param
                :type :arg
-               :value ["bar"]}]}
+               :value "bar"}]}
           {:kind :opt
            :type :arg
-           :value ["-baz"]}
+           :value "-baz"}
           {:kind :param
            :type :arg
-           :value ["qux"]}]}]}])
+           :value "qux"}]}]}])
   (is (== expect3 (parse-inlines input3)))
   (def input4
     ```
@@ -152,7 +152,7 @@
       :type :args
       :value [{:kind :etc
                :type :arg
-               :value ["..."]}]}])
+               :value "..."}]}])
   (is (== expect4 (parse-inlines input4))))
 
 (deftest inline-arg
@@ -160,35 +160,27 @@
     ```
     _foo_
     ```)
-  (def expect1 [{:kind :param :type :arg :value ["foo"]}])
+  (def expect1 [{:kind :param :type :arg :value "foo"}])
   (is (== expect1 (parse-inlines input1)))
   (def input2
     ```
     **-f**
     ```)
-  (def expect2 [{:kind :opt :type :arg :value ["f"]}])
+  (def expect2 [{:kind :opt :type :arg :value "f"}])
   (is (== expect2 (parse-inlines input2))))
-
-(deftest inline-incl
-  (def input1
-    ```
-    `#include <foo.h>`
-    ```)
-	(def expect1 [{:type :incl :value ["foo.h"]}])
-	(is (== expect1 (parse-inlines input1))))
 
 (deftest inline-ev
   (def input1
     ```
     `FOO`
     ```)
-	(def expect1 [{:type :env-var :value ["FOO"]}])
+	(def expect1 [{:type :env-var :value "FOO"}])
 	(is (== expect1 (parse-inlines input1)))
   (def input2
     ```
     `$FOO_BAR`
     ```)
-  (def expect2 [{:type :env-var :value ["$FOO_BAR"]}])
+  (def expect2 [{:type :env-var :value "$FOO_BAR"}])
   (is (== expect2 (parse-inlines input2))))
 
 (deftest inline-path
@@ -196,13 +188,13 @@
     ```
     `/`
     ```)
-	(def expect1 [{:type :path :value ["/"]}])
+	(def expect1 [{:type :path :value "/"}])
 	(is (== expect1 (parse-inlines input1)))
   (def input2
     ```
     `~/home`
     ```)
-  (def expect2 [{:type :path :value ["~/home"]}])
+  (def expect2 [{:type :path :value "~/home"}])
   (is (== expect2 (parse-inlines input2))))
 
 (deftest inline-xref
@@ -233,7 +225,7 @@
                       :value ["foo"]}]}
                   " "
                   {:type :raw
-                   :value ["bar"]}]}])
+                   :value "bar"}]}])
   (is (== expect (parse-inlines input))))
 
 (deftest inline-escaped
