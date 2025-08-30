@@ -94,8 +94,9 @@ which in turn is rendered by `man` into this:
 ### Rationale
 
 Documentation is great and manpages can be a wonderful source of information.
-But people are discouraged from creating or updating manpages because mdoc and
-roff (the markup languages used for these documents) is intimidating.
+But people are discouraged from creating or updating manpages because the syntax
+of mdoc and roff (the markup languages used for these documents) is
+intimidating.
 
 Predoc aims to remedy this. Markdown allows a person to create HTML that 'looks
 like' what they wrote. Predoc wants to do the same thing for manpages: create
