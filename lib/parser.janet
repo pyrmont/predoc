@@ -1,3 +1,5 @@
+(import ./smarty)
+
 # helpers
 
 (defn- calc-width [value]
@@ -193,7 +195,7 @@
     :arg-e (/ (* :type (constant :arg)
                  :kind (constant :etc)
                  :begin ($)
-                 :value '"..."
+                 :value '(+ "..." "\u2026")
                  :end ($))
               ,table)
     # predoc: environment variable
@@ -314,17 +316,18 @@
           (if (= indent i) (break))
           (++ i))
         (buffer/push res (string/slice line i)))))
-  (string res))
+  res)
 
-(defn- parse-inlines [s]
-  (or (first (peg/match i-grammar s))
+(defn- parse-inlines [b]
+  (def smart-b (smarty/pants b))
+  (or (first (peg/match i-grammar smart-b))
       (error "invalid text")))
 
 (defn- make-code [[qindents indent] & lines]
   @{:type :code
     :indent indent
     :qindents qindents
-    :value (join "\n" qindents indent lines true)})
+    :value (string (join "\n" qindents indent lines true))})
 
 (defn- make-fm [& keyvals]
   (def value @{})
@@ -397,7 +400,7 @@
   @{:type :mdoc
     :indent indent
     :qindents qindents
-    :value (join "\n" qindents indent lines true)})
+    :value (string (join "\n" qindents indent lines true))})
 
 (defn- make-para [[qindents indent] & lines]
   @{:type :paragraph
