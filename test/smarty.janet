@@ -50,4 +50,9 @@
   (def expect3 "\\*foo\\*")
   (is (== expect3 (s/pants input3))))
 
+(deftest raw
+  (def input1 ```foo ``bar`` baz't```)
+  (def expect1 "foo ``bar`` baz\u2019t")
+  (is (== expect1 (s/pants input1))))
+
 (run-tests!)

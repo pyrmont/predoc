@@ -34,7 +34,7 @@
   (def dqc "\u201D")
   (def sqo "\u2018")
   (def sqc "\u2019")
-  (def word (array/concat (range 48 57) (range 65 90) (range 97 122)))
+  (def word (array/concat (range 48 58) (range 65 91) (range 97 123)))
   (defn open-br? [ch]
     (or (= po ch) (= bo ch) (= co ch) (= ao ch)))
   (defn close-br? [ch]
@@ -84,6 +84,7 @@
     (var cnt 0)
     (while (def ch (get b i))
       (if (= bt ch)
+        (++ cnt)
         (set cnt 0))
       (if (= goal cnt)
         (break))
