@@ -474,7 +474,7 @@ Physical enclosures
 - **Dq**, **Do**, **Dc**:
   enclose in typographic double quotes: "text"
 - **Qq**, **Qo**, **Qc**:
-  enclose in typewriter double quotes: "text"
+  enclose in typewriter double quotes: \"text\"
 - **Sq**, **So**, **Sc**:
   enclose in single quotes: 'text'
 - **Pq**, **Po**, **Pc**:
@@ -548,7 +548,7 @@ For the scoping of individual macros, see `<MACRO SYNTAX>`.
 
 - **%P** _number_:
   Book or journal page number of an **Rs** block. Conventionally, the argument
-  starts with 'p.' for a single page or 'pp.' for a range of pages, for
+  starts with ``p.`` for a single page or ``pp.`` for a range of pages, for
   example:
 
   ````
@@ -585,7 +585,7 @@ For the scoping of individual macros, see `<MACRO SYNTAX>`.
   .Ad 0x00000000
   ````
 
-- **An** **-split** | **-nosplit** | **first_name** ... **last_name**:
+- **An** **-split** | **-nosplit** | _first\_name_ ... _last\_name_:
   Author name. Can be used both for the authors of the program, function, or
   driver documented in the manual, or for the authors of the manual itself.
   Requires either the name of an author or one of the following arguments:
