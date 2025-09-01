@@ -1,6 +1,6 @@
 # Predoc
 
-[![Build Status](https://github.com/pyrmont/predoc/workflows/build/badge.svg)](https://github.com/pyrmont/lemongrass/actions?query=workflow%3Abuild)
+[![Test Status](https://github.com/pyrmont/predoc/workflows/test/badge.svg)](https://github.com/pyrmont/predoc/actions?query=workflow%3Atest)
 
 Predoc is a Markdown flavour specifically designed for writing manpages.
 
