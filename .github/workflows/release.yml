@@ -94,13 +94,12 @@ jobs:
     - name: "upload artifact"
       uses: actions/upload-artifact@v4
       with:
-        name: build-${{ matrix.os }}
         path: predoc-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
-
 
   release:
     needs: build
     runs-on: ubuntu-latest
+    steps:
     - name: "download artifacts"
       uses: actions/download-artifact@v5
       with:
