@@ -1,4 +1,0 @@
-#!/usr/bin/env janet
-(import predoc/lib/cli)
-
-(cli/run)
