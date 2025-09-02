@@ -60,6 +60,7 @@ jobs:
         mkdir -p $JANET_MANPATH
         mkdir -p $JANET_SRCPATH
         mkdir -p .jeep
+        mkdir -p predoc-${{ inputs.version }}
       shell: bash
     - name: "download janet"
       run: curl -LO https://github.com/janet-lang/janet/archive/refs/tags/${{ steps.janet-ver.outputs.tag }}.tar.gz
@@ -88,8 +89,10 @@ jobs:
     - name: "make quickbin"
       run: jeep quickbin lib/cli.janet predoc
       shell: bash
+    - name: "copy files"
+      run: cp predoc predoc.1 predoc.7 LICENSE predoc-${{ inputs.version }}
     - name: "make tarball"
-      run: tar -czf predoc-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz predoc predoc.1 predoc.7 LICENSE
+      run: tar -czf predoc-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz predoc-${{ inputs.version }}
       shell: bash
     - name: "upload artifact"
       uses: actions/upload-artifact@v4
