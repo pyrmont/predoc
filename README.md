@@ -23,7 +23,7 @@ Title: PREDOC(1)
 Authors: Michael Camilleri <mike@inqk.net>
 Date: August 10, 2025
 Project: Predoc
-Version: 0.1-dev
+Version: 0.1.0
 ---
 
 NAME
@@ -52,7 +52,7 @@ and convert it to this:
 .\"
 .Dd August 10, 2025
 .Dt PREDOC 1
-.Os Predoc 0.1-dev
+.Os Predoc 0.1.0
 .
 .Sh NAME
 .Nm predoc
