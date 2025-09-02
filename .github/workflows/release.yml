@@ -105,6 +105,7 @@ jobs:
       uses: actions/download-artifact@v5
       with:
         path: ./artifacts
+        merge-multiple: true
     - name: "draft the release"
       uses: softprops/action-gh-release@v2
       with:
