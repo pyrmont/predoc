@@ -28,8 +28,9 @@ jobs:
             arch: x86_64
     steps:
     - name: "checkout project"
-      uses: actions/checkout@v4
-      ref: ${{ inputs.version }}
+      uses: actions/checkout@v5
+      with:
+        ref: ${{ inputs.version }}
     - name: "find latest version of janet"
       uses: oprypin/find-latest-tag@v1
       with:
