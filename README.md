@@ -1,17 +1,18 @@
 # Predoc
 
+[![Latest Release](https://img.shields.io/github/v/release/pyrmont/predoc)](https://github.com/pyrmont/predoc/releases/latest)
 [![Test Status](https://github.com/pyrmont/predoc/workflows/test/badge.svg)](https://github.com/pyrmont/predoc/actions?query=workflow%3Atest)
 
 Predoc is a Markdown flavour specifically designed for writing manpages.
+
+> [!WARNING]
+> Predoc is in a beta stage of development. There are likely to be bugs and
+> gaps in its implementation.
 
 This is the repository for the reference implementation of the parser and
 renderer written in the Janet programming language. It includes a command-line
 utility, `predoc`, which converts a Predoc document into a manpage written in
 mdoc.
-
-> [!WARNING]
-> Predoc is in an alpha stage of development. There are likely to be bugs and
-> gaps in its implementation.
 
 ## Example
 
@@ -114,16 +115,57 @@ More information about the Predoc language is in `predoc(7)`. You can
 
 [predoc-syntax]: predoc.7.predoc
 
-## Utility
+## CLI Utility
 
-### Installation
+### Building
+
+#### Pre-Built
 
 Pre-built binaries of `predoc` for Linux (x86-64 and aarch64) and macOS
-(aarch64) are provided via the [Releases][ghr] section on GitHub.
+(aarch64) are available as tarballs via the [Releases][github-releases] section
+on GitHub.
 
-[ghr]: https://github.com/pyrmont/predoc/releases
+[github-releases]: https://github.com/pyrmont/predoc/releases
 
-### Usage
+```console
+$ curl -LO https://github.com/pyrmont/predoc/releases/latest/download/predoc-<version>-<platform>-<arch>.tar.gz
+$ tar -xzf predoc-<version>-<platform>-<arch>.tar.gz
+$ cd predoc-<version>
+```
+
+#### From Source
+
+To build the `predoc` binary from source, you need [Janet][janet-hp] installed
+on your system together with a build tool that can create 'quickbin'
+executables. Janet officially supports Linux, macOS, Windows and various BSDs.
+For the build tool, I suggest [Jeep][jeep-hp].
+
+[janet-hp]: https://janet-lang.org/
+
+[jeep-hp]: https://github.com/pyrmont/jeep
+
+Once Janet and Jeep are installed, run:
+
+```console
+$ git clone https://github.com/pyrmont/predoc
+$ cd predoc
+$ git tag --sort=creatordate
+$ git checkout <version>
+$ jeep quickbin lib/cli.janet predoc
+```
+
+### Installing
+
+Move the `predoc` binary somewhere on your path and `predoc.1` and `predoc.7` to
+the appropriate manpage locations. For example:
+
+```console
+$ cp predoc /usr/local/bin/
+$ cp predoc.1 /usr/local/share/man/man1/
+$ cp predoc.7 /usr/local/share/man/man7/
+```
+
+### Using
 
 To convert a Predoc document called `example.1.predoc` into the manpage
 `example.1` for the program `example`, you can write:
@@ -141,35 +183,7 @@ To specify these values explicitly, you can write:
 $ predoc --name example --output example.1 example.1.predoc
 ```
 
-## Development
-
-The `predoc` command-line utility is written in the Janet programming language.
-Janet is a Lisp written in C that has no dependencies.
-
-### Building
-
-To build the `predoc` binary, you need Janet installed on your system together
-with a build tool that can create 'quickbin' executables. Janet is available for
-Linux, macOS, Windows and various BSDs. [See here][janet-install] for more
-information about installing it. For the build tool, I suggest [Jeep][].
-
-[Jeep]: https://github.com/pyrmont/jeep
-
-[janet-install]: https://janet-lang.org/docs/
-
-Once you have those prerequisites installed, run:
-
-```console
-$ jeep quickbin lib/cli.janet predoc
-```
-
-### Testing
-
-You can run the tests using Jeep:
-
-```console
-$ jeep test -P
-```
+More information about `predoc` is, of course, available in `predoc(1)`.
 
 ## Bugs
 
