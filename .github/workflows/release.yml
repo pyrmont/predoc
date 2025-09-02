@@ -54,6 +54,10 @@ jobs:
     - name: "make directories"
       run:  |
         mkdir -p $PREFIX
+        mkdir -p $JANET_HEADERPATH
+        mkdir -p $JANET_BINPATH
+        mkdir -p $JANET_LIBPATH
+        mkdir -p $JANET_MANPATH
         mkdir -p $JANET_SRCPATH
         mkdir -p .jeep
       shell: bash
@@ -64,10 +68,7 @@ jobs:
       run: tar -xzf ${{ steps.janet-ver.outputs.tag }}.tar.gz --strip-components=1 -C $JANET_SRCPATH
       shell: bash
     - name: "make janet"
-      run: cd $JANET_SRCPATH && make
-      shell: bash
-    - name: "move janet"
-      run: mv build/janet $JANET_BINPATH
+      run: cd $JANET_SRCPATH && make install
       shell: bash
     - name: "return to workspace directory"
       run: cd $GITHUB_WORKSPACE
