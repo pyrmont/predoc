@@ -90,7 +90,7 @@ jobs:
       shell: bash
     - name: "make tarball"
       run: tar -czf predoc-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz predoc predoc.1 predoc.7 LICENSE
-      shell: base
+      shell: bash
     - name: "draft the release"
       uses: softprops/action-gh-release@v2
       with:
