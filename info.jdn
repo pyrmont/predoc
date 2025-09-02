@@ -17,6 +17,5 @@
                "init.janet"
                "LICENSE"]}]}
 
- :executable ["bin/predoc"]
  :source {:prefix "predoc"
           :files ["deps" "lib" "init.janet"]}}

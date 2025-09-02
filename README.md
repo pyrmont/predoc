@@ -116,21 +116,12 @@ More information about the Predoc language is in `predoc(7)`. You can
 
 ## Utility
 
-### Prerequisites
-
-The `predoc` command-line utility is written in the Janet programming language.
-Janet is a Lisp written in C that has no dependencies.
-
-You need Janet installed on your system to run `predoc`. Janet is available for
-Linux, macOS, Windows and various BSDs. [See here][janet-install] for more
-information about installing it.
-
-[janet-install]: https://janet-lang.org/docs/
-
 ### Installation
 
-After installing Janet, clone the repository and run `janet --install predoc`
-from the project root.
+Pre-built binaries of `predoc` for Linux (x86-64 and aarch64) and macOS
+(aarch64) are provided via the [Releases][ghr] section on GitHub.
+
+[ghr]: https://github.com/pyrmont/predoc/releases
 
 ### Usage
 
@@ -148,6 +139,36 @@ To specify these values explicitly, you can write:
 
 ```
 $ predoc --name example --output example.1 example.1.predoc
+```
+
+## Development
+
+The `predoc` command-line utility is written in the Janet programming language.
+Janet is a Lisp written in C that has no dependencies.
+
+### Building
+
+To build the `predoc` binary, you need Janet installed on your system together
+with a build tool that can create 'quickbin' executables. Janet is available for
+Linux, macOS, Windows and various BSDs. [See here][janet-install] for more
+information about installing it. For the build tool, I suggest [Jeep][].
+
+[Jeep]: https://github.com/pyrmont/jeep
+
+[janet-install]: https://janet-lang.org/docs/
+
+Once you have those prerequisites installed, run:
+
+```console
+$ jeep quickbin lib/cli.janet predoc
+```
+
+### Testing
+
+You can run the tests using Jeep:
+
+```console
+$ jeep test -P
 ```
 
 ## Bugs
