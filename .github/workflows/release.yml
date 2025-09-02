@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -91,9 +91,23 @@ jobs:
     - name: "make tarball"
       run: tar -czf predoc-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz predoc predoc.1 predoc.7 LICENSE
       shell: bash
+    - name: "upload artifact"
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-${{ matrix.os }}
+        path: predoc-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    - name: "download artifacts"
+      uses: actions/download-artifact@v5
+      with:
+        path: ./artifacts
     - name: "draft the release"
       uses: softprops/action-gh-release@v2
       with:
         draft: true
-        files: predoc-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+        files: ./artifacts/*
         tag_name: ${{ inputs.version }}
