@@ -157,6 +157,7 @@ jobs:
         run: |
           sudo pkg install -y gmake
           cd $JANET_SRCPATH && gmake install
+          export PATH="$PREFIX"/bin:"$PATH"
           cd $GITHUB_WORKSPACE
           cd .jeep && janet --install .
           cd $GITHUB_WORKSPACE
