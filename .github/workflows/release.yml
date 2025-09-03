@@ -102,6 +102,17 @@ jobs:
 
   virtual-build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: freebsd
+            version: "14.0"
+            arch: x86-64
+            target: freebsd14-x86_64
+          - os: freebsd
+            version: "14.0"
+            arch: arm64
+            target: freebsd14-aarch64
     steps:
     - name: "checkout project"
       uses: actions/checkout@v5
@@ -151,8 +162,9 @@ jobs:
       uses: cross-platform-actions/action@v0.27.0
       with:
         environment_variables: "PREFIX JANET_HEADERPATH JANET_BINPATH JANET_LIBPATH JANET_MANPATH JANET_SRCPATH JANET_PATH"
-        operating_system: freebsd
-        version: "14.0"
+        operating_system: ${{ matrix.os }}
+        architecture: ${{ matrix.architecture }}
+        version: ${{ matrix.version }}
         shell: bash
         run: |
           sudo pkg install -y gmake
@@ -166,13 +178,13 @@ jobs:
     - name: "copy files"
       run: cp predoc predoc.1 predoc.7 LICENSE predoc-${{ inputs.version }}
     - name: "make tarball"
-      run: tar -czf predoc-${{ inputs.version }}-freebsd-x86_64.tar.gz predoc-${{ inputs.version }}
+      run: tar -czf predoc-${{ inputs.version }}-${{ matrix.target }}.tar.gz predoc-${{ inputs.version }}
       shell: bash
     - name: "upload artifact"
       uses: actions/upload-artifact@v4
       with:
-        name: build-freebsd-x86_64
-        path: predoc-${{ inputs.version }}-freebsd-x86_64.tar.gz
+        name: build-${{ matrix.target }}
+        path: predoc-${{ inputs.version }}-${{ matrix.target }}.tar.gz
 
   release:
     needs: [build, virtual-build]
@@ -188,4 +200,5 @@ jobs:
       with:
         draft: true
         files: ./artifacts/*
+        overwrite_files: false
         tag_name: ${{ inputs.version }}
