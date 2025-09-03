@@ -148,11 +148,14 @@ jobs:
       run: tar -xzf ${{ steps.janet-ver.outputs.tag }}.tar.gz --strip-components=1 -C $JANET_SRCPATH
       shell: bash
     - name: "make janet"
-      uses: vmactions/freebsd-vm@v1
+      uses: cross-platform-actions/action@v0.27.0
       with:
-        usesh: true
-        prepare: pkg install -y gmake
+        environment_variables: "PREFIX JANET_HEADERPATH JANET_BINPATH JANET_LIBPATH JANET_MANPATH JANET_SRCPATH JANET_PATH"
+        operating_system: freebsd
+        version: "14.0"
+        shell: bash
         run: |
+          pkg install -y gmake
           cd $JANET_SRCPATH && gmake install
           cd $GITHUB_WORKSPACE
           cd .jeep && janet --install .
