@@ -155,7 +155,7 @@ jobs:
         version: "14.0"
         shell: bash
         run: |
-          pkg install -y gmake
+          sudo pkg install -y gmake
           cd $JANET_SRCPATH && gmake install
           cd $GITHUB_WORKSPACE
           cd .jeep && janet --install .
