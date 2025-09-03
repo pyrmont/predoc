@@ -192,30 +192,30 @@ More information about `predoc` is, of course, available in `predoc(1)`.
 
 There are alternatives to Predoc. Here are a few:
 
-- [lowdown][]: **lowdown** is a simple Markdown translator. It is written in C
+- [**lowdown**][] is a simple Markdown translator. It is written in C and
+  compiles to a single binary with no dependencies. It uses Markdown. It
+  produces roff rather than mdoc but can convert to additional formats as well.
+  The syntactic constructs it can produce in the generated manpage are fewer
+  than can be produced by Predoc. It is _actively_ maintained.
+
+- [**Pandoc**][] is the universal document converter. It is written in Haskell
   and compiles to a single binary with no dependencies. It uses Markdown. It
   produces roff rather than mdoc but can convert to additional formats as well.
   The syntactic constructs it can produce in the generated manpage are fewer
   than can be produced by Predoc. It is _actively_ maintained.
 
-- [Pandoc][]: **Pandoc** is the universal document converter. It is written in
-  Haskell and compiles to a single binary with no dependencies. It uses
-  Markdown. It produces roff rather than mdoc but can convert to additional
-  formats as well. The syntactic constructs it can produce in the generated
-  manpage are fewer than can be produced by Predoc. It is _actively_ maintained.
-
-- [ronn][]: **ronn** is the opposite of roff. It is written in Ruby and runs as
-  an executable script that requires Ruby. It uses a syntax similar to Markdown.
+- [**ronn**][] is the opposite of roff. It is written in Ruby and runs as an
+  executable script that requires Ruby. It uses a syntax similar to Markdown.
   It produces roff rather than mdoc but can also produce HTML. The syntactic
   constructs it can produce in the generated manpage are fewer than can be
   produced by Predoc. It is _not actively_ maintained. (It does objectively have
   the best name.)
 
-- [scdoc][]: **scdoc** is a simple manpage generator. It is written in C and
-  compiles to a single binary with no dependencies. It uses a syntax similar to
-  Markdown. It produces roff rather than mdoc. The syntactic constructs it can
-  produce in the generated manpage are fewer than can be produced by Predoc. It
-  is _actively_ maintained.
+- [**scdoc**][] is a simple manpage generator. It is written in C and compiles
+  to a single binary with no dependencies. It uses a syntax similar to Markdown.
+  It produces roff rather than mdoc. The syntactic constructs it can produce in
+  the generated manpage are fewer than can be produced by Predoc. It is
+  _actively_ maintained.
 
 [lowdown]: https://kristaps.bsd.lv/lowdown/
 
