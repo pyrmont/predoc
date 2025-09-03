@@ -163,9 +163,10 @@ Move the `predoc` binary somewhere on your path and `predoc.1` and `predoc.7` to
 the appropriate manpage locations. For example:
 
 ```console
-$ cp predoc /usr/local/bin/
-$ cp predoc.1 /usr/local/share/man/man1/
-$ cp predoc.7 /usr/local/share/man/man7/
+# use sudo or doas depending on the permissions of the target directories
+$ sudo cp predoc /usr/local/bin/
+$ sudo cp predoc.1 /usr/local/share/man/man1/
+$ sudo cp predoc.7 /usr/local/share/man/man7/
 ```
 
 ### Using
