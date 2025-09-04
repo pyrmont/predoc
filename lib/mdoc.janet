@@ -26,7 +26,7 @@
     (buffer/popn b 1))
   (buffer/push b ;text nl))
 
-(defn buffer-esc [b s &opt inline?]
+(defn- buffer-esc [b s &opt inline?]
   (def escapes
     {bo "\\(lB" bs "\\e" dq "\\(dq" fs "\\&." sq "\\(aq"})
   (var i 0)
