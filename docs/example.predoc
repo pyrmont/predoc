@@ -14,36 +14,27 @@ NAME
 SYNOPSIS
 ========
 
-**example** [**--option1** _value1_] [**--option2** _value2_] [**--option3**]
-            [**--option4** _value4_] _input_
+**example** [**--option1** _value1_] [**--option2** _value2_] [**--option3**] [**--option4** _value4_] _input_
 
 DESCRIPTION
 ===========
 
-**example** is an example command-line tool that is useful for demonstrating how
-Predoc works.
+**example** is an example command-line tool that is useful for demonstrating how Predoc works.
 
 Options
 -------
 
 - **--option1** _value1_:
-  This option presumably does something to modify the way that **example**
-  operates.
+  This option presumably does something to modify the way that **example** operates.
 
 - **--option2** _value2_:
-  One would assume that this option also does something to modify the way that
-  **example** operates. It perhaps goes without saying that the something it
-  does must depend to some degree on the value of _value2_.
+  One would assume that this option also does something to modify the way that **example** operates. It perhaps goes without saying that the something it does must depend to some degree on the value of _value2_.
 
 - **--option3**:
-  The eagle-eyed amongst you would have noticed that this option doesn't take a
-  value so it's really more of a flag.
+  The eagle-eyed amongst you would have noticed that this option doesn't take a value so it's really more of a flag.
 
 - **--option4** _value4_:
-  In case you're wondering, yes, I spent a longer time than I should have
-  thinking about whether the value of this option should have been _value3_ or
-  _value4_. On the one hand, it's the third value but on the other, it might be
-  confusing if the number didn't match the option number.
+  In case you're wondering, yes, I spent a longer time than I should have thinking about whether the value of this option should have been _value3_ or _value4_. On the one hand, it's the third value but on the other, it might be confusing if the number didn't match the option number.
 
 - _input_:
   This is the input value for **example**. To read from stdin, use ``-``.
@@ -51,8 +42,7 @@ Options
 EXIT STATUS
 ===========
 
-**example** exits ``0`` if exiting without error. Otherwise the exit status will
-be ``1``.
+**example** exits ``0`` if exiting without error. Otherwise the exit status will be ``1``.
 
 EXAMPLES
 ========
