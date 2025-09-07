@@ -1,2 +1,2 @@
-exclude:
+include:
   - "*.predoc"
