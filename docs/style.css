@@ -242,6 +242,14 @@ div.manpage div.codeblock {
     justify-content: flex-start;
   }
 
+  body > blockquote {
+    margin-left: 0;
+  }
+
+  body > footer {
+    text-align: inherit;
+  }
+
   div.dingus {
     display: block;
   }
@@ -257,9 +265,5 @@ div.manpage div.codeblock {
     display: block;
     height: 200px;
     width: 100%;
-  }
-
-  body > footer {
-    text-align: inherit;
   }
 }
