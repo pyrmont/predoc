@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Predoc - A Markdown Flavour for Writing Manpages</title>
-  <link rel="stylesheet" href="style.css?202509071324">
-  <script type="module" src="dingus.js?202509071425"></script>
+  <link rel="stylesheet" href="style.css?202509072151">
+  <script type="module" src="dingus.js?202509071700"></script>
 </head>
 <body>
 <nav>
@@ -26,7 +26,10 @@ of their own terminal using standard tools like <strong>man</strong>.</p>
 <h2 id="dingus">Dingus</h2>
 <div class="dingus">
 <textarea id="input"></textarea>
-<div id="output" class="preview"></div>
+<div class="preview">
+<div id="error"></div>
+<div id="output"></div>
+</div>
 </div>
 <h2 id="implementation">Implementation</h2>
 <p>The reference implementation for Predoc is written in the <a
@@ -41,7 +44,7 @@ GitHub.</p>
 <h2 id="philosophy">Philosophy</h2>
 <p>Markdown is a lightweight markup language that optimises for
 ease-of-reading and ease-of-writing. As explained on the <a
-href="https://daringfireball.net/projects/markdown">Markdown project
+href="https://daringfireball.net/projects/markdown/syntax">Markdown project
 website</a>:</p>
 <blockquote>
 <p>Readability is emphasised above all else. A Markdown-formatted

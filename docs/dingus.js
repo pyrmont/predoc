@@ -22,22 +22,31 @@ function convert(input) {
   }
 }
 
-function update(element, value) {
+function update(element, value, error) {
   if (!element) {
     console.error("cannot update non-existent element");
     return;
   }
   const res = convert(value);
-  element.innerHTML = res;
+  if("" !== res) {
+    error.style.display = "none";
+    element.style.opacity = "1";
+    element.innerHTML = res;
+  } else {
+    element.style.opacity = "0.25";
+    error.textContent = "Error: could not parse input";
+    error.style.display = "block";
+  }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
   const inputEl = document.getElementById("input");
   const outputEl = document.getElementById("output");
+  const errorEl = document.getElementById("error");
 
   try {
     vm = await init();
-    console.log("WASM init OK");
+    console.log("Wasm init OK");
   } catch (e) {
     console.error("init() failed:", e);
     return;
@@ -54,10 +63,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   inputEl.addEventListener("input", (event) => {
-    update(outputEl, event.target.value);
+    update(outputEl, event.target.value, errorEl);
   });
 
-  const example_url = new URL("./example.predoc", import.meta.url);
+  const example_url = new URL("./example.predoc?202509071700", import.meta.url);
   const example_resp = await fetch(example_url);
   if (!example_resp.ok) {
     throw new Error(`HTTP error! status: ${example_resp.status}`);
@@ -66,5 +75,5 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   inputEl.value = example_text;
   console.log(inputEl.value);
-  update(outputEl, inputEl.value);
+  update(outputEl, inputEl.value, errorEl);
 });
