@@ -14,6 +14,10 @@ renderer written in the Janet programming language. It includes a command-line
 utility, `predoc`, which converts a Predoc document into a manpage written in
 mdoc.
 
+You can try out Predoc in your browser on the [project homepage][ph].
+
+[ph]: https://pyrmont.github.io/predoc/
+
 ## Example
 
 Predoc allows you to take this:
