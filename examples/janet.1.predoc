@@ -1,0 +1,267 @@
+---
+Title: JANET(1)
+Authors: Calvin Rose <calsrose@gmail.com>
+Date: 2025-09-07
+Project: Janet
+---
+
+NAME
+====
+
+**janet** - run the Janet language abstract machine
+
+SYNOPSIS
+========
+
+**janet** [**-hvsrpnqik**] [**-e** _SOURCE_] [**-E** _SOURCE_ _...ARGUMENTS_]
+          [**-l** _MODULE_] [**-m** _PATH_] [**-c** _MODULE_ _JIMAGE_]
+          [**-w** _LEVEL_] [**-x** _LEVEL_] [**--**] _script_ _args..._
+
+DESCRIPTION
+===========
+
+Janet is a functional and imperative programming language and bytecode
+interpreter.  It is a Lisp-like language, but lists are replaced by
+other data structures (arrays, tables, structs, tuples). The language
+also features bridging to native code written in C, meta-programming
+with macros, and bytecode assembly.
+
+There is a repl for trying out the language, as well as the ability to
+run script files. This client program is separate from the core
+runtime, so Janet could be embedded into other programs. Try Janet in
+your browser at [the Janet Language website](https://janet-lang.org).
+
+Implemented in mostly standard C99, Janet runs on Windows, Linux and
+macOS.  The few features that are not standard C99 (dynamic library
+loading, compiler specific optimizations), are fairly straight
+forward.  Janet can be easily ported to most new platforms.
+
+REPL KEY-BINDINGS
+=================
+
+- Home:
+  Move cursor to the beginning of input line.
+
+- End:
+  Move cursor to the end of input line.
+
+- Left/Right:
+  Move cursor in input line.
+
+- Up/Down:
+  Go backwards and forwards through history.
+
+- Tab:
+  Complete current symbol, or show available completions.
+
+- Delete:
+  Delete one character after the cursor.
+
+- Backspace:
+  Delete one character before the cursor.
+
+- Ctrl-A:
+  Move cursor to the beginning of input line.
+
+- Ctrl-B:
+  Move cursor one character to the left.
+
+- Ctrl-D:
+  If on a newline, indicate end of stream and exit the repl.
+
+- Ctrl-E:
+  Move cursor to the end of input line.
+
+- Ctrl-F:
+  Move cursor one character to the right.
+
+- Ctrl-H:
+  Delete one character before the cursor.
+
+- Ctrl-K:
+  Delete everything after the cursor on the input line.
+
+- Ctrl-L:
+  Clear the screen.
+
+- Ctrl-N:
+  Go forwards and backwards through history.
+
+- Ctrl-U:
+  Delete everything before the cursor on the input line.
+
+- Ctrl-W:
+  Delete one word before the cursor.
+
+- Ctrl-G:
+  Show documentation for the current symbol under the cursor.
+
+- Ctrl-Q:
+  Clear the current command, including already typed lines.
+
+- Alt-B/:
+  Move cursor backwards and forwards one word.
+
+- Alt-D:
+  Delete one word after the cursor.
+
+- Alt-,:
+  Go to earliest item in history.
+
+- Alt-.:
+  Go to last item in history.
+
+The repl keybindings are loosely based on a subset of GNU readline,
+although **janet** does not use GNU readline internally for the
+repl. It is a limited substitute for GNU readline, and does not handle
+utf-8 input or other mutlibyte input well.
+
+To disable the built-in repl input handling, pass the **-s** option to
+**janet**, and use a program like `rlwrap(1)` with **janet** to
+provide input.
+
+For key bindings that operate on words, a word is considered to be a
+sequence of characters that does not contain whitespace.
+
+DOCUMENTATION
+=============
+
+For more documentation, see [the Janet Language
+website](https://janet-lang.org).
+
+The ``doc`` macro can also be used via the REPL (Read Eval Print Loop)
+to view documentation on individual bindings.
+
+OPTIONS
+=======
+
+- **-h**:
+  Shows the usage text and exits immediately.
+
+- **-v**:
+  Shows the version text and exits immediately.
+
+- **-s**:
+  Read raw input from stdin and forgo prompt history and other
+  readline-like features.
+
+- **-e** _code_:
+  Execute a string of Janet source. Source code is executed in the
+  order it is encountered, so earlier arguments are executed before
+  later ones.
+
+- **-E** _code_ _arguments..._:
+  Execute a single Janet expression as a Janet short-fn, passing the
+  remaining command line arguments to the expression. This allows
+  more concise one-liners with command line arguments.
+
+  Example: ``janet -E '(print $0)' 12`` is equivalent to ``((short-fn
+  (print $0)) 12)``, which is in turn equivalent to ``((fn [k] (print
+  k)) 12)``
+
+  See docs for the ``short-fn`` function for more details.
+
+- **-d**:
+  Enable debug mode. On all terminating signals as well the debug
+  signal, this will cause the debugger to come up in the REPL.  Same
+  as calling ``(setdyn :debug true)`` in a default repl.
+
+- **-n**:
+  Disable ANSI colors in the repl. Has no effect if no repl is run.
+
+- **-N**:
+  Enable ANSI colors in the repl. Has no effect if no repl is run.
+
+- **-r**:
+  Open a REPL (Read Eval Print Loop) after executing all sources.  By
+  default, if **janet** is called with no arguments, a REPL is opened.
+
+- **-R**:
+  If using the REPL, disable loading the user profile from the
+  `JANET_PROFILE` environment variable.
+
+- **-p**:
+  Turn on the persistent flag. By default, when **janet** is executing
+  commands from a file and encounters an error, it will immediately
+  exit after printing the error message. In persistent mode, **janet**
+  will keep executing commands after an error.  Persistent mode can be
+  good for debugging and testing.
+
+- **-q**:
+  Hide the logo in the repl.
+
+- **-k**:
+  Don't execute a script, only compile it to check for errors.  Useful
+  for linting scripts.
+
+- **-m** _syspath_:
+  Set the dynamic binding ``:syspath`` to the string syspath so that
+  **janet** will load system modules from a directory different than
+  the default. The default is set when **janet** is built, and
+  defaults to `/usr/local/lib/janet` on Linux/Posix, and
+  `C:/Janet/Library` on Windows. This option supersedes `JANET_PATH`.
+
+- **-c** _source_ _output_:
+  Precompiles Janet source code into an image, a binary dump that can
+  be efficiently loaded later.  Source should be a path to the Janet
+  module to compile, and output should be the file path of resulting
+  image. Output should usually end with the .jimage extension.
+
+- **-i**:
+  When this flag is passed, a script passed to the interpreter will be
+  treated as a Janet image file rather than a Janet source file.
+
+- **-l** _lib_:
+  Import a Janet module before running a script or repl.  Multiple
+  files can be loaded in this manner, and exports from each file will
+  be made available to the script or repl.
+
+- **-w** _level_:
+  Set the warning linting level for **janet**.  This linting level
+  should be one of ``:relaxed``, ``:none``, ``:strict``, ``:normal``,
+  or a Janet number. Any linting message that is of a greater lint
+  level than this setting will be displayed as a warning, but not stop
+  compilation or execution.
+
+- **-x** _level_:
+  Set the error linting level for **janet**.  This linting level
+  should be one of ``:relaxed``, ``:none``, ``:strict``, ``:normal``,
+  or a Janet number. Any linting message that is of a greater lint
+  level will cause a compilation error and stop compilation.
+
+- **--**:
+  Stop parsing command line arguments. All arguments after this one
+  will be considered file names and then arguments to the script.
+
+ENVIRONMENT
+===========
+
+- `JANET_PATH`:
+  The location to look for Janet libraries. This is the only
+  environment variable **janet** needs to find native and source code
+  modules. If no `JANET_PATH` is set, **janet** will look in the
+  default location set at compile time. This should be a
+  colon-separated list on Linux/Posix, and a semi-colon-separated list
+  on Windows, though in most cases only a single directory should be
+  used.
+
+- `JANET_PROFILE`:
+  Path to a profile file that the interpreter will load before
+  entering the REPL. This profile file will not run for scripts,
+  though. This behavior can be disabled with the **-R** option.
+
+- `JANET_HASHSEED`:
+  To disable randomization of **janet**'s PRF (pseudorandom function
+  family) on startup, one can set this variable.  This can have the
+  effect of making programs deterministic that otherwise would depend
+  on the random seed chosen at program start.  This variable does
+  nothing in the default configuration of **janet**, as PRF is
+  disabled by default. Also, `JANET_REDUCED_OS` cannot be defined for
+  this variable to have an effect.
+
+- `NO_COLOR`:
+  Turn off color by default in the repl and in the error handler of
+  scripts. This can be changed at runtime via dynamic bindings
+  ``*err-color*`` and ``*pretty-format*``, or via the command line
+  parameters **-n** and **-N**.
+
