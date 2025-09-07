@@ -3,7 +3,7 @@ Title: PREDOC(7)
 Authors: Michael Camilleri <mike@inqk.net>
 Date: August 19, 2025
 Project: Predoc
-Version: 0.1.1
+Version: 0.2.0-dev
 ---
 
 NAME
@@ -14,7 +14,7 @@ NAME
 DESCRIPTION
 ===========
 
-The **predoc** language is a Markdown flavour aimed at authors writing manpages.
+The **predoc** language is a Markdown flavour for writing manpages.
 
 This document describes the **predoc** syntax. The original source for this
 manpage is written in **predoc** and can be viewed in the project repository.
