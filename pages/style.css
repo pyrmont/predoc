@@ -1,0 +1,183 @@
+body {
+  font-family: sans-serif;
+  font-size: 16px;
+  margin: 0 auto;
+  width: 80%;
+}
+
+div, textarea {
+  box-sizing: border-box;
+}
+
+body > h1, body > h2 {
+  border-bottom: 2px dotted black;
+  color: #696969;
+  font-family: monospace;
+  margin-top: 1.5rem;
+  padding-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+body > h3 {
+  border-bottom: 1px dotted #696969;
+  color: #696969;
+  font-family: monospace;
+  margin-top: 1.5rem;
+  padding: 0 0 0.5rem 0;
+}
+
+body > nav ul {
+  display: flex;
+  gap: 3rem;
+  justify-content: center;
+  list-style: none;
+}
+
+body > nav ul li {
+  border-bottom: 2px dotted #696969;
+  color: #696969;
+  flex: 0 0 auto;
+  font-family: monospace;
+  padding-bottom: 0.25rem;
+}
+
+body > nav ul li a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+body > blockquote {
+  border-left: 5px solid #d3d3d3;
+  color: #808080;
+  margin-left: 2rem;
+  padding-left: 1rem;
+}
+
+body > pre {
+  background: #f9f6ee;
+  color: #696969;
+  padding: 2rem;
+}
+
+body > p code {
+  background: #f9f6ee;
+  color: #3b3b3b;
+  padding: 0 0.5rem;
+}
+
+body > footer {
+  color: #696969;
+  font-size: 0.8rem;
+  margin: 2rem 0 1.5rem 0;
+  text-align: center;
+}
+
+/* Dingus */
+
+div.dingus {
+  display: flex;
+  gap: 1rem;
+  margin: 2rem auto;
+}
+
+div.dingus textarea {
+  border: 1px solid #696969;
+  display: inline-block;
+  flex: 1;
+  font-family: monospace;
+  font-size: 14px;
+  height: 500px;
+  width: 48%;
+}
+
+div.dingus div.preview {
+  background: #f9f6ee;
+  border: 1px solid #696969;
+  flex: 1;
+  font-family: monospace;
+  font-size: 14px;
+  display: inline-block;
+  height: 500px;
+  overflow-x: auto;
+  overflow-y: auto;
+  padding: 0.5rem;
+  width: 48%;
+}
+
+/* Manpage Preview */
+
+div.manpage div.header, div.manpage div.footer {
+  display: flex;
+}
+
+div.manpage div.header > div, div.manpage div.footer > div {
+  flex: 0 0 20%;
+}
+
+div.manpage div.header div.man-sec, div.manpage div.footer > div.date {
+  flex: 1;
+  text-align: center;
+}
+
+div.manpage div.header > div:last-child, div.manpage div.footer > div:last-child {
+  text-align: right;
+}
+
+div.manpage div.footer {
+  border-top: 1px dotted black;
+  margin-top: 2rem;
+  padding-top: 0.5rem;
+}
+
+div.manpage h2.section {
+  border-bottom: 0.15rem dotted;
+}
+
+div.manpage h3.subsection {
+  margin-bottom: 0.75rem;
+}
+
+div.manpage p.synopsis {
+  display: grid;
+  column-gap: 0.5em;
+  grid-template-columns: auto 1fr;
+}
+
+div.manpage p.synopsis span.name {
+  grid-column: 1;
+}
+
+div.manpage p.synopsis div.rest {
+  grid-column: 2;
+}
+
+div.manpage span.command, div.manpage span.name {
+  font-weight: 600;
+}
+
+div.manpage span.arg-opt {
+  font-weight: 600;
+}
+
+div.manpage span.arg-param {
+  text-decoration: underline;
+}
+
+div.manpage ul.tagged-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+div.manpage ul.tagged-list h4 {
+  margin-bottom: 0;
+}
+
+div.manpage ul.tagged-list p {
+  margin-top: 0.25rem;
+  margin-left: 1rem;
+}
+
+div.manpage div.codeblock {
+  margin-left: 2rem;
+  white-space: pre;
+}

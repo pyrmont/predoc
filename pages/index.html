@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Predoc - A Markdown Flavour for Writing Manpages</title>
+  <link rel="stylesheet" href="style.css?202509071324">
+  <script type="module" src="dingus.js?202509071425"></script>
+</head>
+<body>
+<nav>
+  <ul>
+    <li><a href="#predoc">Introduction</a></li>
+    <li><a href="#dingus">Dingus</a></li>
+    <li><a href="#implementation">Implementation</a></li>
+    <li><a href="#philosophy">Philosophy</a></li>
+    <li><a href="#syntax">Syntax</a></li>
+    <li><a href="#source">Source</a></li>
+  </ul>
+</nav>
+<h1 id="predoc">Predoc</h1>
+<p>The <strong>Predoc</strong> language is a Markdown flavour for
+writing manpages.</p>
+<p>Using Predoc, you can quickly and easily add documentation to your
+project. Your users can then consult this documentation in the comfort
+of their own terminal using standard tools like <strong>man</strong>.</p>
+<h2 id="dingus">Dingus</h2>
+<div class="dingus">
+<textarea id="input"></textarea>
+<div id="output" class="preview"></div>
+</div>
+<h2 id="implementation">Implementation</h2>
+<p>The reference implementation for Predoc is written in the <a
+href="https://janet-lang.org">Janet</a> programming language. Janet is a
+Lisp that comes with a powerful PEG (parser expression grammar) engine
+as part of the runtime.</p>
+<p>The reference implementation includes a single-binary command-line
+utility that you can use to convert Predoc into mdoc. <a
+href="https://github.com/pyrmont/predoc/releases">Pre-built binaries</a>
+are available for FreeBSD, Linux and macOS from the repository on
+GitHub.</p>
+<h2 id="philosophy">Philosophy</h2>
+<p>Markdown is a lightweight markup language that optimises for
+ease-of-reading and ease-of-writing. As explained on the <a
+href="https://daringfireball.net/projects/markdown">Markdown project
+website</a>:</p>
+<blockquote>
+<p>Readability is emphasised above all else. A Markdown-formatted
+document should be publishable as-is, as plain text, without looking
+like it’s been marked up with tags or formatting instructions.</p>
+</blockquote>
+<p>Predoc shares this philosophy. Its syntax is comprised of punctuation
+characters. As much as possible, the punctuation characters are chosen
+to look like what they mean. Headings look like headings, emphasis looks
+like emphasis, lists look like lists and so on.</p>
+<p>Markdown assumes that it will be converted to HTML. Predoc assumes
+that it will be converted to <a
+href="https://mandoc.bsd.lv/man/mdoc.7.html">mdoc</a>. In the same way
+that Markdown is not a replacement for HTML, predoc is not a replacement
+for mdoc. John Gruber, the creator of Markdown, makes a distinction
+between HTML as a publishing format and Markdown as a writing format.
+Predoc makes this same distinction: mdoc is a publishing format and
+predoc is a writing format.</p>
+<h2 id="syntax">Syntax</h2>
+<p>Predoc’s syntax is a reduced and modified set of Markdown’s
+syntax.The Predoc syntax is more fully described in the <a
+href="https://github.com/pyrmont/predoc/blob/master/predoc.7.predoc"><code>predoc(7)</code></a>
+manpage.</p>
+<p>To give you an idea, here are a couple of syntactic elements that
+make writing manpages in Predoc such a nice experience:</p>
+<h3 id="commands">Commands</h3>
+<p>A command is denoted by <code>**</code> on either side of text.</p>
+<pre class="predoc"><code>Load the **jump** program.</code></pre>
+<p>Commands are intended to be used for internal or interactive commands
+associated with the subject of the manpage. For strong text, use
+<code>__</code> instead.</p>
+<p>When rendered to mdoc, a command usually produces an internal command
+using the <code>Ic</code> macro. The exception to this is when a name is
+provided to the rendering function. In this case, a command produces the
+name of the manpage using the <code>Nm</code> macro.</p>
+<h3 id="options">Options</h3>
+<p>An option is denoted by <code>**</code> on either side of text. The
+option name must begin with <code>-</code>. Long options begin with
+<code>--</code>.</p>
+<pre class="predoc"><code>If flying is enabled, use **-f** or **--fly**.</code></pre>
+<p>Options are intended to be used for what mdoc calls command-line
+flags or command-line options. For strong text, use <code>__</code>
+instead.</p>
+<p>When rendered to mdoc, an option produces a command option using the
+<code>Op</code> macro.</p>
+<h3 id="tagged-lists">Tagged Lists</h3>
+<p>A tagged list is denoted by a <code>-</code> at the start of the
+first line, a <code>:</code> at the end of the first line and then a
+body beginning on the second line.</p>
+<pre class="predoc"><code>- **Dojo**:
+  A place for sparring.
+
+- **Street**:
+  A place for concentration.</code></pre>
+<p>A tagged list is a list of tag/body pairs. Tagged lists are used
+idiomatically in manpages for argument lists but can be used for other
+content.</p>
+<p>When rendered to mdoc, a tagged list produces a tagged list using the
+<code>Bl</code> macro with the arguments <code>-tag</code> and
+<code>-width Ds</code>. If the list is ‘tight’ (i.e., there are no blank
+lines between elements), the arguments also include
+<code>-compact</code>.</p>
+<h2 id="source">Source</h2>
+<p>Predoc is open source and licensed under the MIT Licence. More
+information is available from the <a
+href="https://github.com/pyrmont/predoc">repository</a> on GitHub.</p>
+<footer>
+<p>Special thanks to my wife and three children for their support,
+John Gruber for Markdown and sogaiu for his endless patience.</p>
+</footer>
+</body>
+</html>
