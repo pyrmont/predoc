@@ -10,7 +10,7 @@
                        :proxy "path"
                        :req?  true}
            "--format" {:help    `The format to use for the output. Valid values
-                                are jdn and mdoc.`
+                                are html, jdn and mdoc.`
                        :default "mdoc"
                        :kind    :single
                        :short   "f"}
@@ -54,7 +54,7 @@
       (os/exit 1))
     # run command
     (do
-      (def formats {"mdoc" "mdoc" "jdn" "jdn"})
+      (def formats {"html" :html "jdn" :jdn "mdoc" :mdoc})
       (def opts (parsed :opts))
       (def params (parsed :params))
       # set format
@@ -78,7 +78,7 @@
           (do
             (def begin (or (last (string/find-all "/" i-path)) 0))
             (def ends (string/find-all "." i-path begin))
-            (def ext (unless (= "mdoc" format) (string "." format)))
+            (def ext (unless (= :mdoc format) (string "." format)))
             (if (< (length ends) 2)
               (cond
                 (and (nil? name) (nil? o-path))
@@ -103,11 +103,13 @@
                    (slurp i-path)))
       # determine render function
       (def render (case format
-                    "jdn"
+                    :html
+                    (fn [r] (p/predoc->html name* r :no-ad? no-ad?))
+                    :jdn
                     (partial p/predoc->jdn)
-                    "mdoc"
+                    :mdoc
                     (fn [r] (p/predoc->mdoc name* r :no-ad? no-ad?))
-                    (error "unrecognised format")))
+                    (error "format renderer not implemented")))
       # render document
       (def document (render input))
       # output document

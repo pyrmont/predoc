@@ -553,7 +553,7 @@
     :indent (/ (* (group (any (* ':hs* :qt-m))) ':hs*) ,make-indent)
     :line (* (! :eol) '(to :eol) (? (if-not :break :nl)))
     :loose? (+ (if (> -2 :break) :t) :f)
-    # front matter
+    # frontmatter
     :fm (/ (* (at-least 3 "-")
               (some (* :nl ':w+ ": " '(to :nl))) :nl
               (at-least 3 "-")) ,make-fm)
