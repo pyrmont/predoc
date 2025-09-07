@@ -12,10 +12,10 @@ div, textarea {
 
 body > nav ul {
   display: flex;
-  gap: 3rem;
+  gap: 3.0rem;
   justify-content: center;
   list-style: none;
-  padding: 0;
+  padding: 0 0 1.0rem 0;
   overflow-x: auto;
   white-space: nowrap;
 }
@@ -25,7 +25,6 @@ body > nav ul li {
   color: #696969;
   flex: 0 0 auto;
   font-family: monospace;
-  padding-bottom: 0.25rem;
 }
 
 body > nav ul li a {
@@ -37,9 +36,16 @@ body > h1, body > h2 {
   border-bottom: 2px dotted black;
   color: #696969;
   font-family: monospace;
-  margin-top: 2.0rem;
   padding-bottom: 0.5rem;
   text-transform: uppercase;
+}
+
+body > h1 {
+  margin-top: 0.5rem;
+}
+
+body > h2 {
+  margin-top: 2.0rem;
 }
 
 body > h3 {
@@ -60,6 +66,7 @@ body > blockquote {
 body > pre {
   background: #f9f6ee;
   color: #696969;
+  overflow-x: auto;
   padding: 2rem;
 }
 
@@ -164,11 +171,20 @@ div.manpage p.synopsis div.rest {
   grid-column: 2;
 }
 
+div.manpage em {
+  font-style: normal;
+  text-decoration: underline;
+}
+
+div.manpage span {
+  word-break: keep-all;
+}
+
 div.manpage span.command, div.manpage span.name {
   font-weight: 600;
 }
 
-div.manpage span.arg-opt {
+div.manpage span.arg-opt, div.manpage span.arg-mod {
   font-weight: 600;
 }
 
@@ -176,18 +192,35 @@ div.manpage span.arg-param {
   text-decoration: underline;
 }
 
-div.manpage ul.tagged-list {
+div.manpage table {
+  margin-top: 1.0rem;
+}
+
+div.manpage ul {
+  padding-left: 1.0rem;
+}
+
+div.manpage ul.tagged-list, div.manpage ul.indented-list {
   list-style: none;
   padding-left: 0;
 }
 
-div.manpage ul.tagged-list > h4 {
+div.manpage ul.tagged-list li, div.manpage ul.indented-list li {
+  margin-top: 0.25rem;
+  margin-left: 2.0rem;
+}
+
+div.manpage ul.tagged-list h4 {
+  margin-bottom: 0;
+  margin-left: -1.0rem;
+}
+
+div.manpage ul.indented-list h4 {
   margin-bottom: 0;
 }
 
-div.manpage ul.tagged-list > * {
-  margin-top: 0.25rem;
-  margin-left: 1rem;
+div.manpage ul.tagged-list h4 + p, div.manpage ul.indented-list h4 + p {
+  margin-top: 0;
 }
 
 div.manpage .compact {
@@ -200,6 +233,7 @@ div.manpage .compact > li > p {
 
 div.manpage div.codeblock {
   margin-left: 2rem;
+  overflow-x: auto;
   white-space: pre;
 }
 
