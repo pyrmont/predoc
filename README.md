@@ -117,7 +117,7 @@ More information about the Predoc language is in `predoc(7)`. You can
 (hopefully) see the benefit of writing manpages in Predoc by reading the
 [Predoc version][predoc-syntax] directly.
 
-[predoc-syntax]: predoc.7.predoc
+[predoc-syntax]: man/man7/predoc.7.predoc
 
 ## CLI Utility
 
@@ -158,7 +158,7 @@ $ git clone https://github.com/pyrmont/predoc
 $ cd predoc
 $ git tag --sort=creatordate
 $ git checkout <version>
-$ jeep quickbin lib/cli.janet predoc
+$ jeep install
 ```
 
 ### Installing
