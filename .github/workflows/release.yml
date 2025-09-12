@@ -173,7 +173,7 @@ jobs:
           cd $GITHUB_WORKSPACE
           cd .jeep && janet --install .
           cd $GITHUB_WORKSPACE
-          jeep test -P
+          jeep test -R
           jeep quickbin lib/cli.janet predoc
     - name: "copy files"
       run: cp predoc predoc.1 predoc.7 LICENSE predoc-${{ inputs.version }}
