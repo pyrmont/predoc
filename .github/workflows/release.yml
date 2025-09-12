@@ -90,7 +90,7 @@ jobs:
       run: jeep quickbin lib/cli.janet predoc
       shell: bash
     - name: "copy files"
-      run: cp predoc predoc.1 predoc.7 LICENSE predoc-${{ inputs.version }}
+      run: cp predoc man/man1/predoc.1 man/man7/predoc.7 LICENSE predoc-${{ inputs.version }}
     - name: "make tarball"
       run: tar -czf predoc-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz predoc-${{ inputs.version }}
       shell: bash
@@ -176,7 +176,7 @@ jobs:
           jeep test -R
           jeep quickbin lib/cli.janet predoc
     - name: "copy files"
-      run: cp predoc predoc.1 predoc.7 LICENSE predoc-${{ inputs.version }}
+      run: cp predoc man/man1/predoc.1 man/man7/predoc.7 LICENSE predoc-${{ inputs.version }}
     - name: "make tarball"
       run: tar -czf predoc-${{ inputs.version }}-${{ matrix.target }}.tar.gz predoc-${{ inputs.version }}
       shell: bash
