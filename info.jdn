@@ -9,13 +9,16 @@
    "deps" [
     {:url "https://github.com/pyrmont/argy-bargy"
      :prefix "argy-bargy"
-     :include ["argy-bargy.janet"
-               "LICENSE"]}
+     :files ["argy-bargy.janet"
+             "LICENSE"]}
     {:url "https://github.com/pyrmont/testament"
      :prefix "testament"
-     :include ["lib/testament.janet"
-               "init.janet"
-               "LICENSE"]}]}
+     :files ["lib/testament.janet"
+             "init.janet"
+             "LICENSE"]}]}
 
+ :quickbin {"predoc" "lib/cli.janet"}
+ :manpage ["man/man1/predoc.1"
+           "man/man7/predoc.7"]
  :source {:prefix "predoc"
           :files ["deps" "lib" "init.janet"]}}
