@@ -84,7 +84,7 @@ jobs:
       run: cd $GITHUB_WORKSPACE
       shell: bash
     - name: "run tests"
-      run: jeep test -P
+      run: jeep test -R
       shell: bash
     - name: "make quickbin"
       run: jeep quickbin lib/cli.janet predoc
