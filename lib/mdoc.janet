@@ -1,3 +1,5 @@
+(import ./util)
+
 # helpers
 
 (def- nl 10)
@@ -12,14 +14,26 @@
 (def- bs 92)
 (def- bc 93)
 
-(def- authors @[])
+(def- trail-delims ".,:;?!)")
 
+# state
+
+(def- authors @[])
 (var- progname nil)
 (var- no-author? true)
 (var- needs-pp? false)
 (var- section nil)
 (var- subsection nil)
 (var- inline-macros 0)
+
+(defn reset []
+  (array/clear authors)
+  (set progname nil)
+  (set no-author? true)
+  (set needs-pp? false)
+  (set section nil)
+  (set subsection nil)
+  (set inline-macros 0))
 
 (defn- buffer-cont [b & text]
   (if (= nl (last b))
@@ -69,7 +83,7 @@
     (buffer/push b nl)))
 
 (defn- trailing-delim [s start]
-  (peg/match '(* (some '(set ".,:;?!)")) (+ (set " \t") -1)) s start))
+  (peg/match ~(* (some '(set ,trail-delims)) (+ (set " \t") -1)) s start))
 
 (defn- parse-date [s]
   (def months {"1" "January" "2" "February" "3" "March" "4" "April" "5" "May"
@@ -137,10 +151,8 @@
     (when (def ch (get s i))
       (cond
         # backslash
-        (and (= bs ch) (= bs (get s (inc i))))
-        (do
-          (++ i)
-          (buffer/push b "\\e"))
+        (= bs ch)
+        (buffer/push b "\\e")
         # hyphen
         (and (= ms ch) (zero? i) (ending-nl? b))
         (do
@@ -190,7 +202,7 @@
     (buffer-line b ".Oc")))
 
 (defn- render-authors [b]
-  (unless no-author?
+  (when no-author?
     (break))
   (set no-author? false)
   (buffer-line b ".")
@@ -227,14 +239,16 @@
       (buffer-line b ".Nm"))
     (buffer-line b ".Ic \\&" name)))
 
-(defn- render-emphasis [b node]
-  (when (not= "Xo" (string/slice b -4 -2))
+(defn- render-emphasis [b node &opt strong?]
+  (when (and (ending-nl? b)
+             (not (string/has-suffix? "Xo \n" b))
+             (not (string/check-set trail-delims (string/slice b -3 -2))))
     (buffer/popn b 1)
     (buffer/push b "\\c\n"))
   (if (zero? inline-macros)
     (buffer/push b ".")
     (buffer/push b " "))
-  (buffer/push b "Em ")
+  (buffer/push b (if strong? "Sy" "Em") " ")
   (++ inline-macros)
   (each v (get node :value)
     (if (table? v)
@@ -354,30 +368,20 @@
   (buffer-line b ".Pa " (get node :value))
   (buffer-line b ".Ec"))
 
-(defn- render-strong [b node]
-  (when (not= "Xo" (string/slice b -4 -2))
-    (buffer/popn b 1)
-    (buffer/push b "\\c\n"))
-  (if (zero? inline-macros)
-    (buffer/push b ".")
-    (buffer/push b " "))
-  (buffer/push b "Sy ")
-  (++ inline-macros)
-  (each v (get node :value)
-    (if (table? v)
-      (render b v)
-      (render-string b v)))
-  (-- inline-macros))
-
 (defn- render-prologue [b node]
   (def fm (get node :value))
   (def [title sec] (peg/match ~(* '(* :w (any (+ :w "-")))  "(" ':d+ ")") (get fm :title)))
   (def date (parse-date (get fm :date)))
-  (if (def as (get fm :authors))
+  (when (def as (get fm :authors))
     (array/concat authors (string/split ", " as))
     (set no-author? false))
-  (def licence (-?> (get fm :license) (slurp)))
-  (when licence
+  (def licence-path (get fm :license))
+  (when licence-path
+    (def parent-dir (-?> (dyn :predoc-file) util/abspath util/parent))
+    (def licence (slurp
+                   (if (string/has-prefix? "./" licence-path)
+                     (string parent-dir util/sep (string/slice licence-path 2))
+                     licence-path)))
     (each line (string/split "\n" licence)
       (buffer-line b `.\" ` line)))
   (buffer-line b ".Dd " date)
@@ -475,7 +479,7 @@
     :raw
     (render-raw b node)
     :strong
-    (render-strong b node)
+    (render-emphasis b node true)
     :xref
     (render-xref b node)
     (error (string (get node :type) " not implemented"))))
@@ -494,4 +498,5 @@
   (each node root
     (render b node))
   (render-authors b)
+  (reset)
   (string b))

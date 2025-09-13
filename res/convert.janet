@@ -1,0 +1,20 @@
+(import ../lib/predoc)
+(import ../lib/util)
+
+(defn main
+  [& args]
+  (def parent (-> (dyn :current-file) util/abspath util/parent util/parent))
+  (def man-dir (string parent "/examples/"))
+  (each entry (os/dir man-dir)
+    (when (string/has-suffix? ".predoc" entry)
+      (def src (string man-dir entry))
+      (def dest (string/slice src 0 -8))
+      (def name (string/slice entry 0 -10))
+      (def prefix (string (os/cwd) "/"))
+      (def rel-src (string/replace prefix "" src))
+      (def rel-dest (string/replace prefix "" dest))
+      (print "converting " rel-src " to " rel-dest)
+      (setdyn :predoc-file src)
+      (def predoc (slurp src))
+      (def mdoc (predoc/predoc->mdoc name predoc))
+      (spit dest mdoc))))
