@@ -76,7 +76,7 @@
         (if (and (not (nil? name)) (not (nil? o-path)))
           [name o-path]
           (do
-            (def begin (or (last (string/find-all "/" i-path)) 0))
+            (def begin (or (-?> (string/find-all "/" i-path) last inc) 0))
             (def ends (string/find-all "." i-path begin))
             (def ext (unless (= :mdoc format) (string "." format)))
             (if (< (length ends) 2)
