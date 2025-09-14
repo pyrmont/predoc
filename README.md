@@ -230,6 +230,11 @@ There are alternatives to Predoc. Here are a few:
 
 [scdoc]: https://git.sr.ht/~sircmpwn/scdoc/
 
+## Versioning
+
+Predoc uses the label `DEVEL` during development. When a new version is
+released, a tag is created for that version in the repository.
+
 ## Bugs
 
 Found a bug? I'd love to know about it. The best way is to report your bug in
