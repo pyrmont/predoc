@@ -204,7 +204,7 @@
 (defn- render-authors [b]
   (when no-author?
     (break))
-  (set no-author? false)
+  (set no-author? true)
   (buffer-line b ".")
   (buffer-line b ".Sh " "AUTHORS")
   (each a authors
