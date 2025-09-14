@@ -2,7 +2,7 @@
 (import ../lib/cli)
 
 (def- paths
-  ["info.jdn"
+  ["examples"
    "man/man1"
    "man/man7"])
 
@@ -21,6 +21,7 @@
           (def prefix (string (os/cwd) "/"))
           (def rel-src (string/replace prefix "" src))
           (def rel-dest (string/replace prefix "" dest))
-          (print "converting " rel-src " to " rel-dest)
+          (setdyn :predoc-file src)
           (setdyn :args ["predoc" src "-o" dest])
+          (print "converting " rel-src " to " rel-dest)
           (cli/run))))))
