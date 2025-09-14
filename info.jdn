@@ -1,4 +1,5 @@
 {:name "predoc"
+ :version "DEVEL"
  :description "A tool in Janet to convert manpages from Predoc to mdoc"
  :author "Michael Camilleri"
  :license "MIT"
