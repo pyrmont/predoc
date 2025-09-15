@@ -7,12 +7,20 @@
 (def- gt 62)
 (def- bs 92)
 
-(def- authors @[])
+# state
 
+(def- authors @[])
 (var- progname nil)
 (var- no-author? true)
 (var- section nil)
 (var- subsection nil)
+
+(defn reset []
+  (array/clear authors)
+  (set progname nil)
+  (set no-author? true)
+  (set section nil)
+  (set subsection nil))
 
 (defn- buffer-esc [b s &opt inline?]
   (def escapes
@@ -156,10 +164,10 @@
     (buffer/push b "</span>")))
 
 (defn- render-authors [b]
-  (if no-author?
+  (when no-author?
     (break))
   (set no-author? true)
-  (buffer-line b `<h3 class="subsection">Authors</h3>`)
+  (buffer-line b `<h2 class="section">Authors</h2>`)
   (each a authors
     (when (def m (peg/match '(* '(some (if-not " <" 1))
                                 (? (* " <" '(to ">") ">"))) a))
@@ -448,7 +456,6 @@
              (get node :value))))
   (when fm
     (when (def as (get fm :authors))
-      (array/clear authors)
       (array/concat authors (string/split ", " as))
       (set no-author? false))
     (render-fm b fm))
@@ -462,4 +469,5 @@
   (when fm
     (render-fm b fm true))
   (buffer/push b "</div>")
+  (reset)
   (string b))
