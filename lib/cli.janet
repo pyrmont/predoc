@@ -32,7 +32,7 @@
                        :proxy "path"
                        :short "o"}
            "-------------------------------------------"]
-   :info {:about "Convert a document in Predoc to a manpage in mdoc."}})
+   :info {:about "Convert a document from Predoc to a man page in mdoc."}})
 
 (defn- build-str [src begin end &opt append]
   (string (string/slice src begin end) append))

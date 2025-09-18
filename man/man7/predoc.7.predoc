@@ -9,15 +9,15 @@ Version: DEVEL
 NAME
 ====
 
-**predoc** - a Markdown flavour for manpages
+**predoc** - a Markdown flavour for man pages
 
 DESCRIPTION
 ===========
 
-The **predoc** language is a Markdown flavour for writing manpages.
+The **predoc** language is a Markdown flavour for writing man pages.
 
 This document describes the **predoc** syntax. The original source for this
-manpage is written in **predoc** and can be viewed in the project repository.
+man page is written in **predoc** and can be viewed in the project repository.
 
 The command-line utility that can be used to convert **predoc** into `mdoc(7)`
 is documented at `predoc(1)`.
@@ -50,16 +50,16 @@ Design Goals
 
 The design goals of **predoc** are:
 
-1. to make the experience of writing manpages pleasant
+1. to make the experience of writing man pages pleasant
 2. to convert to semantically significant `mdoc(7)`
 3. to degrade gracefully when parsed as Markdown
 
-We believe that manpages are an under-utilised resource in the computing world
+We believe that man pages are an under-utilised resource in the computing world
 and that one of the reasons for this is that `roff(7)` and `mdoc(7)` are not
 approachable formats for writing.
 
 The ultimate aim of **predoc** is to encourage more people to contribute to the
-production of manpages.
+production of man pages.
 
 STRUCTURE
 =========
@@ -74,7 +74,7 @@ Frontmatter is a collection of colon-separated (``: ``) key-value pairs at the
 beginning of a **predoc** document. Frontmatter is demarcated by 3 or more ``-``
 characters at the beginning and the end.
 
-To produce a valid manpage, the frontmatter must include a _Title_. The other
+To produce a valid man page, the frontmatter must include a _Title_. The other
 elements are optional.
 
 ````
@@ -94,7 +94,7 @@ The recognised keys are as follows:
   A word written in capital letters followed by a number in parentheses. This
   number corresponds to the manual section number. See the listing for the _Dt_
   macro in `mdoc(7)` for more information on the manual sections into which
-  manpages are categorised.
+  man pages are categorised.
 
 - _Authors_:
   A comma-delimited list (``, ``). An author consists of a name
@@ -109,19 +109,19 @@ The recognised keys are as follows:
   3. ``%B %d, %Y``
 
   The format specifiers have the same meaning as `strftime(3)`. `mdoc(7)`
-  manpages use dates in the format ``%B %d, %Y`` and the date will be converted
+  man pages use dates in the format ``%B %d, %Y`` and the date will be converted
   to this format by `predoc(1)`.
 
 - _Project_:
-  The name of the project. `mdoc(7)` manpages can include an ``.Os`` macro in
+  The name of the project. `mdoc(7)` man pages can include an ``.Os`` macro in
   the prologue. When rendered to `mdoc(7)`, `man(1)` typically prints a value
-  at the bottom of the manpage. `predoc(1)` will use this value together with
+  at the bottom of the man page. `predoc(1)` will use this value together with
   _Version_ as an argument to `.Os`.
 
 - _Version_:
-  The version of the project. `mdoc(7)` manpages can include an ``.Os`` macro
+  The version of the project. `mdoc(7)` man pages can include an ``.Os`` macro
   in the prologue. When rendered to `mdoc(7)`, `man(1)` typically prints a
-  value at the bottom of the manpage. `predoc(1)` will use this value together
+  value at the bottom of the man page. `predoc(1)` will use this value together
   with _Project_ as an argument to `.Os`.
 
 - _License_:
@@ -152,11 +152,11 @@ following:
 ----|----------------------|-----|------------------------
 ```
 
-The first section must be the NAME section and a valid manpage must contain a
+The first section must be the NAME section and a valid man page must contain a
 NAME section. The NAME section should include at least one instance of the name
-of the subject of the manpage followed by a description.
+of the subject of the man page followed by a description.
 
-By convention, most manpages should also include SYNOPSIS and DESCRIPTION
+By convention, most man pages should also include SYNOPSIS and DESCRIPTION
 sections. As with `mdoc(7)` documents, the sections in a **predoc** document
 are usually ordered as they appear above. Additional sections can be added
 where appropriate.
@@ -337,7 +337,7 @@ A tagged list can be nested in a blockquote or a list. The list item can contain
 a blockquote, code block, list or simple table.
 
 This is a *variation* on Markdown. A tagged list is a list of tag/body pairs.
-Tagged lists are used idiomatically in manpages for argument lists but can be
+Tagged lists are used idiomatically in man pages for argument lists but can be
 used for other content.
 
 When rendered to `mdoc(7)`, a tagged list produces a tagged list using the
@@ -542,13 +542,13 @@ A command cannot be nested in other inline elements. A command cannot contain
 other inline elements.
 
 This is a *variation* on Markdown. Commands are intended to be used for internal
-or interactive commands associated with the subject of the manpage. For strong
+or interactive commands associated with the subject of the man page. For strong
 text, use ``__`` instead.
 
 When rendered to `mdoc(7)`, a command usually produces an internal command using
 the ``Ic`` macro. The exception to this is if the command matches the program
 name provided to `predoc(1)`. In this case, a command produces the name of the
-manpage using the ``Nm`` macro.
+man page using the ``Nm`` macro.
 
 Cross-References (External)
 ---------------------------
@@ -564,7 +564,7 @@ A cross-reference cannot be nested in other inline elements. A cross-reference
 cannot contain other inline elements.
 
 This is an *extension* to Markdown. These cross-references are to other
-manpages. The number in parentheses is the number of the manual section.
+man pages. The number in parentheses is the number of the manual section.
 
 When rendered to `mdoc(7)`, an external cross-reference produces a
 cross-reference to another manual page using the ``Xr`` macro.
@@ -584,7 +584,7 @@ A cross-reference cannot be nested in other inline elements. A cross-reference
 cannot contain other inline elements.
 
 This is an *extension* to Markdown. These cross-references are to other sections
-or subsections in the current manpage.
+or subsections in the current man page.
 
 When rendered to `mdoc(7)`, an internal cross-reference produces an internal
 cross-reference using the ``Sx`` macro.

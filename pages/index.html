@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Predoc - A Markdown Flavour for Writing Manpages</title>
+  <title>Predoc - A Markdown Flavour for Writing Man Pages</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css?202509080153">
   <script type="module" src="dingus.js?202509071700"></script>
@@ -20,7 +20,7 @@
 </nav>
 <h1 id="predoc">Predoc</h1>
 <p>The <strong>Predoc</strong> language is a Markdown flavour for
-writing manpages.</p>
+writing man pages.</p>
 <p>Using Predoc, you can quickly and easily add documentation to your
 project. Your users can then consult this documentation in the comfort
 of their own terminal using standard tools like <strong>man</strong>.</p>
@@ -69,19 +69,19 @@ predoc is a writing format.</p>
 <p>Predoc’s syntax is a reduced and modified set of Markdown’s
 syntax.The Predoc syntax is more fully described in the <a
 href="https://github.com/pyrmont/predoc/blob/master/predoc.7.predoc"><code>predoc(7)</code></a>
-manpage.</p>
+man page.</p>
 <p>To give you an idea, here are a couple of syntactic elements that
-make writing manpages in Predoc such a nice experience:</p>
+make writing man pages in Predoc such a nice experience:</p>
 <h3 id="commands">Commands</h3>
 <p>A command is denoted by <code>**</code> on either side of text.</p>
 <pre class="predoc"><code>Load the **jump** program.</code></pre>
 <p>Commands are intended to be used for internal or interactive commands
-associated with the subject of the manpage. For strong text, use
+associated with the subject of the man page. For strong text, use
 <code>__</code> instead.</p>
 <p>When rendered to mdoc, a command usually produces an internal command
 using the <code>Ic</code> macro. The exception to this is when a name is
 provided to the rendering function. In this case, a command produces the
-name of the manpage using the <code>Nm</code> macro.</p>
+name of the man page using the <code>Nm</code> macro.</p>
 <h3 id="options">Options</h3>
 <p>An option is denoted by <code>**</code> on either side of text. The
 option name must begin with <code>-</code>. Long options begin with
@@ -102,7 +102,7 @@ body beginning on the second line.</p>
 - **Street**:
   A place for concentration.</code></pre>
 <p>A tagged list is a list of tag/body pairs. Tagged lists are used
-idiomatically in manpages for argument lists but can be used for other
+idiomatically in man pages for argument lists but can be used for other
 content.</p>
 <p>When rendered to mdoc, a tagged list produces a tagged list using the
 <code>Bl</code> macro with the arguments <code>-tag</code> and
