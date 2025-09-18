@@ -108,7 +108,9 @@
                     :jdn
                     (partial p/predoc->jdn)
                     :mdoc
-                    (fn [r] (p/predoc->mdoc name* r :no-ad? no-ad?))
+                    (fn [r]
+                      (unless (= "-" i-path) (setdyn :predoc-file i-path))
+                      (p/predoc->mdoc name* r :no-ad? no-ad?))
                     (error "format renderer not implemented")))
       # render document
       (def document (render input))

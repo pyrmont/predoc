@@ -380,7 +380,9 @@
     (def parent-dir (-?> (dyn :predoc-file) util/abspath util/parent))
     (def licence (slurp
                    (if (string/has-prefix? "./" licence-path)
-                     (string parent-dir util/sep (string/slice licence-path 2))
+                     (if (nil? parent-dir)
+                       (error "cannot infer path to licence")
+                       (string parent-dir util/sep (string/slice licence-path 2)))
                      licence-path)))
     (each line (string/split "\n" licence)
       (buffer-line b `.\" ` line)))
