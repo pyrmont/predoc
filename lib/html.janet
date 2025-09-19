@@ -10,8 +10,8 @@
 # state
 
 (def- authors @[])
-(var- progname nil)
 (var- no-author? true)
+(var- progname nil)
 (var- section nil)
 (var- subsection nil)
 

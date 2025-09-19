@@ -15,25 +15,37 @@
 (def- bc 93)
 
 (def- trail-delims ".,:;?!)")
+(def- macros [
+  "Ac" "Ad" "An" "Ao" "Ap" "Aq" "Ar" "At" "Bc" "Bd" "Bf" "Bk" "Bl" "Bo" "Bq"
+  "Brc" "Bro" "Brq" "Bsx" "Bt" "Bx" "Cd" "Cm" "D1" "Db" "Dc" "Dd" "Dl" "Do"
+  "Dq" "Dt" "Dv" "Dx" "Ec" "Ed" "Ef" "Ek" "El" "Em" "En" "Eo" "Er" "Es" "Ev"
+  "Ex" "Fa" "Fc" "Fd" "Fl" "Fn" "Fo" "Fr" "Ft" "Fx" "Hf" "Ic" "In" "It" "Lb"
+  "Li" "Lk" "Lp" "Ms" "Mt" "Nd" "Nm" "No" "Ns" "Nx" "Oc" "Oo" "Op" "Os" "Ot"
+  "Ox" "Pa" "Pc" "Pf" "Po" "Pp" "Pq" "Qc" "Ql" "Qo" "Qq" "Re" "Rs" "Rv" "Sc"
+  "Sh" "Sm" "So" "Sq" "Ss" "St" "Sx" "Sy" "Ta" "Tg" "Tn" "Ud" "Ux" "Va" "Vt"
+  "Xc" "Xo" "Xr" "%A" "%B" "%C" "%D" "%I" "%J" "%N" "%O" "%P" "%Q" "%R" "%T"
+  "%U" "%V"])
 
 # state
 
 (def- authors @[])
-(var- progname nil)
-(var- no-author? true)
+(var- ended-sp? false)
+(var- inline-macros 0)
 (var- needs-pp? false)
+(var- no-author? true)
+(var- progname nil)
 (var- section nil)
 (var- subsection nil)
-(var- inline-macros 0)
 
 (defn reset []
   (array/clear authors)
-  (set progname nil)
-  (set no-author? true)
+  (set ended-sp? false)
+  (set inline-macros 0)
   (set needs-pp? false)
+  (set no-author? true)
+  (set progname nil)
   (set section nil)
-  (set subsection nil)
-  (set inline-macros 0))
+  (set subsection nil))
 
 (defn- buffer-cont [b & text]
   (if (= nl (last b))
@@ -78,6 +90,9 @@
 (defn- ending-nl? [b]
   (= nl (last b)))
 
+(defn- ending-sp? [b]
+  (= sp (last b)))
+
 (defn- ensure-nl [b]
   (unless (ending-nl? b)
     (buffer/push b nl)))
@@ -120,25 +135,31 @@
 # independent render- functions
 
 (defn- render-arg [b node]
+  (def name (get node :value))
+  (def macro? (index-of name macros))
   (def [macro value]
     (case (get node :kind)
       :mod
-      ["Cm \\&" (get node :value)]
+      ["Cm " name]
       :opt
-      ["Fl " (get node :value)]
+      ["Fl " name]
       :param
-      ["Ar \\&" (get node :value)]
+      ["Ar " name]
       :etc
       ["No " "..."]))
-  (buffer-line b "." macro value))
+  (buffer-line b "." macro (if macro? "\\&" "") value))
 
 (defn- render-oneliner [b s]
   (buffer-line b ".Nd" (string/slice s 2)))
 
 (defn- render-string [b s]
+  (var cnt 0) # used to keep line length below 80 'bytes'
   (var i 0)
   (def len (length s))
+  (var too-long? false)
   (while (< i len)
+    (when (> cnt 60)
+      (set too-long? true))
     (def delims (trailing-delim s i))
     (when delims
       (if (ending-nl? b)
@@ -147,7 +168,9 @@
           (buffer/push b " ")
           (buffer-line b (string/join delims " ")))
         (buffer-line b ;delims))
-      (set i (+ i (length delims))))
+      (set i (+ i (length delims)))
+      (set cnt 0)
+      (set too-long? false))
     (when (def ch (get s i))
       (cond
         # backslash
@@ -162,13 +185,26 @@
         (and (= sp ch) (ending-nl? b))
         (when (string/has-suffix? "\\c\n" b)
           (buffer/popn b 3)
-          (buffer/push b "\n"))
+          (buffer/push b nl))
+        # spaces
+        (and (= sp ch) too-long?)
+        (do
+          (buffer/push b nl)
+          (set cnt 0)
+          (set too-long? false))
         # default
         (buffer/push b ch)))
-    (++ i))
+    (++ i)
+    (++ cnt))
+  (set ended-sp? false)
   (def lastch (last b))
-  (if (or (= bo lastch) (= po lastch))
-    (buffer/push b "\\c"))
+  (cond
+    (or (= bo lastch) (= po lastch))
+    (buffer/push b "\\c")
+    (= sp lastch)
+    (do
+      (set ended-sp? true)
+      (buffer/popn b 1)))
   (ensure-nl b))
 
 # dependent render- functions
@@ -191,7 +227,8 @@
         (buffer-cont b " No | ")))
     (cond
       (= " " arg)
-      (buffer-cont b arg)
+      nil # skip spaces
+      # (buffer-cont b arg)
       (= "=" arg)
       (buffer-cont b " No " arg)
       (= :arg (get arg :type))
@@ -233,15 +270,17 @@
 
 (defn- render-command [b node]
   (def name (get node :value))
+  (def macro? (index-of name macros))
   (if (= progname name)
     (if (= section "NAME")
-      (buffer-line b ".Nm " name)
+      (buffer-line b ".Nm " (if macro? "\\&" "") name)
       (buffer-line b ".Nm"))
-    (buffer-line b ".Ic \\&" name)))
+    (buffer-line b ".Ic " (if macro? "\\&" "") name)))
 
-(defn- render-emphasis [b node &opt strong?]
-  (when (and (ending-nl? b)
-             (not (string/has-suffix? "Xo \n" b))
+(defn- render-emphasis [b node cont-output? &opt strong?]
+  (when (and cont-output?
+             (ending-nl? b)
+             (not (string/has-suffix? "Xo\n" b))
              (not (string/check-set trail-delims (string/slice b -3 -2))))
     (buffer/popn b 1)
     (buffer/push b "\\c\n"))
@@ -293,21 +332,21 @@
 
 (defn- render-list-with-head [b node]
   (def loose? (get node :loose?))
-  (buffer-line b ".Pp")
+  (unless loose? (buffer-line b ".Pp"))
   (cond
     (= :tl (get node :kind))
     (buffer-line b ".Bl -tag -width Ds" (if loose? "" " -compact"))
     (= :il (get node :kind))
     (buffer-line b ".Bl -ohang -offset Ds" (if loose? "" " -compact")))
   (each item (get node :value)
-    (buffer-line b ".It Xo ")
+    (buffer-line b ".It Xo")
     (set needs-pp? false)
     (each el (get-in item [:value 0 :value])
       (case (type el)
         :string
         (if (= " | " el)
-          (buffer-line b ".No " el)
-          (buffer-cont b el))
+          (buffer-line b ".No" el)
+          (buffer-cont b (if (ending-sp? b) "" " ") el))
         :table
         (render b el)))
     (set needs-pp? false)
@@ -322,7 +361,7 @@
 (defn- render-list-without-head [b node]
   (def loose? (get node :loose?))
   (def offset "3n")
-  (buffer-line b ".Pp")
+  (unless loose? (buffer-line b ".Pp"))
   (cond
     (= :ol (get node :kind))
     (buffer-line b ".Bl -enum -offset " offset (if loose? "" " -compact"))
@@ -385,11 +424,19 @@
                        (string parent-dir util/sep (string/slice licence-path 2)))
                      licence-path)))
     (each line (string/split "\n" licence)
-      (buffer-line b `.\" ` line)))
+      (buffer-line b `.\"` (if (or (nil? line) (empty? line)) "" " ") line)))
   (buffer-line b ".Dd " date)
   (buffer-line b ".Dt " title " " sec)
-  (buffer-line b ".Os " (or (get fm :os)
-                            (string (get fm :project) " " (get fm :version)))))
+  (def os (-> (filter (comp not nil?) [(get fm :os) (get fm :project) (get fm :version)]) ))
+  (buffer-line b ".Os" (if (get fm :os)
+                         (string " " (get fm :os))
+                         "")
+                       (if (get fm :project)
+                         (string " " (get fm :project))
+                         "")
+                       (if (get fm :version)
+                         (string " " (get fm :version))
+                         "")))
 
 (defn- render-raw [b node]
   (def s (get node :value))
@@ -415,12 +462,12 @@
     (buffer/push b " \"" (string/repeat " " w) "\""))
   (buffer/push b nl)
   (each row rows
-    (buffer-line b ".It Xo ")
+    (buffer-line b ".It Xo")
     (var first? true)
     (each cell row
       (if first?
         (set first? false)
-        (buffer-line b ".Ta "))
+        (buffer-line b ".Ta"))
       (each v (get cell :value)
         (case (type v)
           :string
@@ -435,11 +482,13 @@
   (def v (get node :value))
   (case (get node :kind)
     :manual
-    (buffer-line b ".Xr " (get v 0) " " (get v 1) "\\&")
+    (buffer-line b ".Xr " (get v 0) " " (get v 1)) # I used to end \\& but why?
     :section
     (buffer-line b ".Sx \"" (get v 0) "\"")))
 
 (varfn render [b node]
+  (def cont-output? (not ended-sp?))
+  (set ended-sp? false)
   (def para-break? needs-pp?)
   (set needs-pp? false)
   (case (get node :type)
@@ -471,7 +520,7 @@
     :command
     (render-command b node)
     :emphasis
-    (render-emphasis b node)
+    (render-emphasis b node cont-output?)
     :env-var
     (render-env-var b node)
     :link
@@ -481,7 +530,7 @@
     :raw
     (render-raw b node)
     :strong
-    (render-emphasis b node true)
+    (render-emphasis b node cont-output? true)
     :xref
     (render-xref b node)
     (error (string (get node :type) " not implemented"))))

@@ -1392,8 +1392,8 @@ For the scoping of individual macros, see `<MACRO SYNTAX>`.
   The **-column** list is the most complicated. Its syntax is as follows:
 
   ```
-  .D1 Pf \. Ic \&It Ar cell Op Ic \&Ta Ar cell ...
-  .D1 Pf \. Ic \&It Ar cell Op <TAB> Ar cell ...
+  .D1 Pf \. Ic \&It Ar cell Op Ic \&Ta Ar cell No ...
+  .D1 Pf \. Ic \&It Ar cell Op <TAB> Ar cell No ...
   ```
 
   The arguments consist of one or more lines of text and macros representing a
@@ -1653,7 +1653,7 @@ For the scoping of individual macros, see `<MACRO SYNTAX>`.
   equivalent to:
 
   ```
-  .D1 Ic \&No Pf \e& Ar prefix Ic \&Ns Ar macro Op Ar argument ...
+  .D1 Ic \&No Pf \e& Ar prefix Ic \&Ns Ar macro Op Ar argument No ...
   ```
 
   The _prefix_ argument is not parsed for macro names or delimiters, but used
