@@ -8,13 +8,14 @@
 (def- sq 39)
 (def- po 40)
 (def- pc 41)
+(def- cm 44)
 (def- ms 45)
 (def- fs 46)
 (def- bo 91)
 (def- bs 92)
 (def- bc 93)
 
-(def- trail-delims ".,:;?!)")
+(def- trail-delims ".,:;)]?!")
 (def- macros [
   "Ac" "Ad" "An" "Ao" "Ap" "Aq" "Ar" "At" "Bc" "Bd" "Bf" "Bk" "Bl" "Bo" "Bq"
   "Brc" "Bro" "Brq" "Bsx" "Bt" "Bx" "Cd" "Cm" "D1" "Db" "Dc" "Dd" "Dl" "Do"
@@ -54,7 +55,8 @@
 
 (defn- buffer-esc [b s &opt inline?]
   (def escapes
-    {bo "\\(lB" bs "\\e" dq "\\(dq" fs "\\&." sq "\\(aq"})
+    {bc "\\(rB" bo "\\(lB" bs "\\e" dq "\\(dq" fs "\\&." pc "\\*(rp"
+     po "\\*(lp" sq "\\(aq"})
   (var i 0)
   (while (def ch (get s i))
     (buffer/push b (get escapes ch ch))
@@ -281,6 +283,7 @@
   (when (and cont-output?
              (ending-nl? b)
              (not (string/has-suffix? "Xo\n" b))
+             (not (string/has-suffix? "Ta\n" b))
              (not (string/check-set trail-delims (string/slice b -3 -2))))
     (buffer/popn b 1)
     (buffer/push b "\\c\n"))
