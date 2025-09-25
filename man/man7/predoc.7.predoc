@@ -363,7 +363,7 @@ This is a *variation* on Markdown. The use of ``+`` to mark an unordered list
 item is not supported to simplify parsing.
 
 When rendered to `mdoc(7)`, an unordered list produces a bulleted list using the
-``Bl`` macro with the arguments  ``-bullet`` and ``-offset 3n``. If the list is
+``Bl`` macro with the arguments ``-bullet`` and ``-offset 3n``. If the list is
 'tight' (i.e., there are no blank lines between elements), the arguments also
 include ``-compact``.
 
@@ -634,7 +634,7 @@ Line breaks
 A break is denoted by ``  `` (two spaces) before a new line.
 
 ````
-I used to eat there...  
+I used to eat there...
 Really good noodles.
 ````
 
