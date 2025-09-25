@@ -16,6 +16,7 @@
 (def- bc 93)
 
 (def- trail-delims ".,:;)]?!")
+(def- alphabet "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 (def- macros [
   "Ac" "Ad" "An" "Ao" "Ap" "Aq" "Ar" "At" "Bc" "Bd" "Bf" "Bk" "Bl" "Bo" "Bq"
   "Brc" "Bro" "Brq" "Bsx" "Bt" "Bx" "Cd" "Cm" "D1" "Db" "Dc" "Dd" "Dl" "Do"
@@ -144,7 +145,7 @@
       :mod
       ["Cm " name]
       :opt
-      ["Fl " name]
+      ["Fl " (if (one? (length name)) name (string `"` name `"`))]
       :param
       ["Ar " name]
       :etc
