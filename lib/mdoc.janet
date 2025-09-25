@@ -52,7 +52,10 @@
 (defn- buffer-cont [b & text]
   (if (= nl (last b))
     (buffer/popn b 1))
-  (buffer/push b ;text nl))
+  (buffer/push b ;text)
+  (if (= sp (last b))
+    (buffer/popn b 1))
+  (buffer/push b nl))
 
 (defn- buffer-esc [b s &opt inline?]
   (def escapes
@@ -227,11 +230,10 @@
     (when an-alternate?
       (if first?
         (set first? false)
-        (buffer-cont b " No | ")))
+        (buffer-cont b " No \\&|")))
     (cond
       (= " " arg)
       nil # skip spaces
-      # (buffer-cont b arg)
       (= "=" arg)
       (buffer-cont b " No " arg)
       (= :arg (get arg :type))
@@ -320,7 +322,8 @@
     2
     (do
       (set subsection v)
-      (buffer-line b ".Ss " v))))
+      (buffer-line b ".Ss " v)))
+  (set needs-pp? false))
 
 (defn- render-link [b node]
   (def args (get node :value))
@@ -334,9 +337,11 @@
     (buffer/push b " \"" (get args 1) "\""))
   (buffer/push b nl))
 
-(defn- render-list-with-head [b node]
+(defn- render-list-with-head [b node para-break?]
   (def loose? (get node :loose?))
-  (unless loose? (buffer-line b ".Pp"))
+  (unless (or loose? (not para-break?))
+    (set needs-pp? false)
+    (buffer-line b ".Pp"))
   (cond
     (= :tl (get node :kind))
     (buffer-line b ".Bl -tag -width Ds" (if loose? "" " -compact"))
@@ -348,8 +353,12 @@
     (each el (get-in item [:value 0 :value])
       (case (type el)
         :string
-        (if (= " | " el)
-          (buffer-line b ".No" el)
+        (cond
+          (= " " el)
+          nil
+          (= " | " el)
+          (buffer-line b ".No \\&|")
+          # default
           (buffer-cont b (if (ending-sp? b) "" " ") el))
         :table
         (render b el)))
@@ -362,10 +371,12 @@
   (buffer-line b ".El")
   (set needs-pp? true))
 
-(defn- render-list-without-head [b node]
+(defn- render-list-without-head [b node para-break?]
   (def loose? (get node :loose?))
   (def offset "3n")
-  (unless loose? (buffer-line b ".Pp"))
+  (unless (or loose? (not para-break?))
+    (set needs-pp? false)
+    (buffer-line b ".Pp"))
   (cond
     (= :ol (get node :kind))
     (buffer-line b ".Bl -enum -offset " offset (if loose? "" " -compact"))
@@ -378,11 +389,11 @@
       (render b block)))
   (buffer-line b ".El"))
 
-(defn- render-list [b node]
+(defn- render-list [b node para-break?]
   (def with-head? {:tl true :il true})
   (if (get with-head? (get node :kind))
-    (render-list-with-head b node)
-    (render-list-without-head b node)))
+    (render-list-with-head b node para-break?)
+    (render-list-without-head b node para-break?)))
 
 (defn- render-mdoc [b node]
   (buffer-line b ".Pp")
@@ -509,7 +520,7 @@
     :heading
     (render-h b node)
     :list
-    (render-list b node)
+    (render-list b node para-break?)
     :mdoc
     (render-mdoc b node)
     :paragraph
