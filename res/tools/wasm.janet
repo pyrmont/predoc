@@ -1,6 +1,7 @@
 (import ../../lib/util)
 
 (def- s util/sep)
+(def- cli-cmd (if (= :macos (os/which)) "container" "docker"))
 
 (defn build-image
   [bdir]
@@ -8,11 +9,7 @@
   (spit (string bdir s "predoc.jimage") (make-image env)))
 
 (defn build
-  ```
-  Build wasm module.  Emsdk must be installed and runnable in the current
-  shell -- on linux, for example, `source emsdk_env.sh` in the emsdk directory.
-  ```
-  [root]
+  [cmd root]
   (def pwd (string (os/cwd) "/"))
   (def bdir (string root s "res" s "wasm"))
   (def pdir (string root s "pages"))
@@ -22,7 +19,7 @@
   (def result
     (try
       (os/execute
-        ["container" "run" "--rm"
+        [cmd "run" "--rm"
          "-v" (string (os/cwd) ":/src")
          "-w" "/src"
          "emscripten/emsdk:4.0.14-arm64"
@@ -57,10 +54,10 @@
          # comment the below out during debugging
          "-s" "AGGRESSIVE_VARIABLE_ELIMINATION=1"
          ]
-        :p)
-      ([err] (eprint "Can't run emcc. Ensure emcc is installed and in your path, and emsdk_env.sh has been sourced into your current environment"))))
+        :px)
+      ([err]
+       (eprint "Cannot run emcc using the Docker container."))))
   (unless (zero? result)
-    (eprint "Error running emcc. Build failed.")
     (os/exit result))
   (def wasm-src (string bdir s "janet.wasm"))
   (def wasm-dest (string pdir s "janet.wasm"))
@@ -71,7 +68,15 @@
   (print "Moving " (string/replace pwd "" js-src) " to " (string/replace pwd "" js-dest))
   (os/rename js-src js-dest))
 
-(defn main [&]
+(defn main
+  ```
+  This script uses a Docker container to run Emscripten. On macOS, the default
+  is to use Apple's 'container' CLI utility to run the container. On other
+  systems, the default is Docker's 'docker'. A user can specify the command to
+  run as an argument to the script.
+  ```
+  [& args]
+  (def cmd (get args 1 cli-cmd))
   (def threeup (comp util/parent util/parent util/parent))
   (def bundle-root (-> (dyn :current-file) util/abspath threeup))
-  (build bundle-root))
+  (build cmd bundle-root))
