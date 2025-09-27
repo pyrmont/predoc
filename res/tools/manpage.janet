@@ -7,13 +7,20 @@
   ["examples"
    "man"])
 
+(defn- parse-args
+  [args]
+  (def force? (= "-f" (get args 1)))
+  (def begin (if force? 2 1))
+  (def pages (array/slice args begin))
+  [force? pages])
+
 (defn- special?
   [entry]
   (or (= "." entry) (= ".." entry)))
 
 (defn main
   [& args]
-  (def pages (array/slice args 1))
+  (def [force? pages] (parse-args args))
   (def threeup (comp util/parent util/parent util/parent))
   (def bundle-root (-> (dyn :current-file) util/abspath threeup))
   (def entries (map (partial string bundle-root s) paths))
@@ -29,9 +36,12 @@
         (def src entry)
         (def dest (string/slice src 0 -8))
         (def prefix (string (os/cwd) "/"))
-        (def rel-src (string/replace prefix "" src))
-        (def rel-dest (string/replace prefix "" dest))
-        (print "converting " rel-src " to " rel-dest)
-        (setdyn :predoc-file src)
-        (setdyn :args ["predoc" src "-o" dest])
-        (cli/run)))))
+        (when (or force?
+                  (< (os/stat dest :modified)
+                     (os/stat src :modified)))
+          (def rel-src (string/replace prefix "" src))
+          (def rel-dest (string/replace prefix "" dest))
+          (print "converting " rel-src " to " rel-dest)
+          (setdyn :predoc-file src)
+          (setdyn :args ["predoc" src "-o" dest])
+          (cli/run))))))
