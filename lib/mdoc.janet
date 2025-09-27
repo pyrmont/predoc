@@ -162,10 +162,12 @@
   (var cnt 0) # used to keep line length below 80 'bytes'
   (var i 0)
   (def len (length s))
-  (var too-long? false)
+  (var can-break? false)
   (while (< i len)
-    (when (> cnt 60)
-      (set too-long? true))
+    (when (and can-break? (> cnt 60))
+      (buffer/popn b 1)
+      (buffer/push b nl)
+      (set cnt 0))
     (def delims (trailing-delim s i))
     (when delims
       (if (ending-nl? b)
@@ -176,8 +178,9 @@
         (buffer-line b ;delims))
       (set i (+ i (length delims)))
       (set cnt 0)
-      (set too-long? false))
+      (set can-break? false))
     (when (def ch (get s i))
+      (set can-break? (= sp ch))
       (cond
         # backslash
         (= bs ch)
@@ -193,11 +196,10 @@
           (buffer/popn b 3)
           (buffer/push b nl))
         # spaces
-        (and (= sp ch) too-long?)
+        (= sp ch)
         (do
-          (buffer/push b nl)
-          (set cnt 0)
-          (set too-long? false))
+          (buffer/push b ch)
+          (set can-break? true))
         # default
         (buffer/push b ch)))
     (++ i)
