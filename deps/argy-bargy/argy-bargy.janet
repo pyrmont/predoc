@@ -111,6 +111,13 @@
     (++ i))
   subconfigs)
 
+(defn devnull
+  ```
+  Gets the /dev/null equivalent for the current platform as a file
+  ```
+  []
+  (os/open (if (= :windows (os/which)) "NUL" "/dev/null") :rw))
+
 
 (defn- get-cols
   ```
@@ -125,17 +132,18 @@
         (if win?
           ["powershell" "-command" "&{(get-host).ui.rawui.WindowSize.Width;}"]
           ["stty" "size"]))
-      (with [f (file/temp)]
-        (def exit-code (os/execute cmd :p {:out f :err nil}))
-        (if (zero? exit-code)
-          (do
-            (file/seek f :set 0)
-            (def out (string/trim (file/read f :all)))
-            (def tcols (if win?
-                         (scan-number out)
-                         (scan-number (-> (string/split " " out) (get 1)))))
-            (min tcols max-width))
-          max-width)))))
+      (with [null (devnull)]
+        (with [f (file/temp)]
+          (def exit-code (os/execute cmd :p {:out f :err null}))
+          (if (zero? exit-code)
+            (do
+              (file/seek f :set 0)
+              (def out (string/trim (file/read f :all)))
+              (def tcols (if win?
+                           (scan-number out)
+                           (scan-number (-> (string/split " " out) (get 1)))))
+              (min tcols max-width))
+            max-width))))))
 
 
 (defn- get-rule
