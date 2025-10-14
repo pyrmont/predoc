@@ -92,11 +92,11 @@
             (cond
               (and (nil? name) (nil? o-path))
               [(build-str i-path begin end-n)
-               (build-str i-path begin end-o ext)]
+               (build-str i-path 0 end-o ext)]
               (nil? name)
               [(build-str i-path begin end-n) o-path]
               (nil? o-path)
-              [name (build-str i-path begin end-o ext)]))))
+              [name (build-str i-path 0 end-o ext)]))))
       # read input
       (def input (if (= "-" i-path)
                    (file/read stdin :all)
