@@ -143,22 +143,14 @@ $ cd predoc-<version>
 #### From Source
 
 To build the `predoc` binary from source, you need [Janet][janet-hp] installed
-on your system together with a build tool that can create 'quickbin'
-executables. Janet officially supports Linux, macOS, Windows and various BSDs.
-For the build tool, I suggest [Jeep][jeep-hp].
-
-[janet-hp]: https://janet-lang.org/
-
-[jeep-hp]: https://github.com/pyrmont/jeep
-
-Once Janet and Jeep are installed, run:
+on your system. Then you can run:
 
 ```console
 $ git clone https://github.com/pyrmont/predoc
 $ cd predoc
 $ git tag --sort=creatordate
 $ git checkout <version>
-$ jeep install
+$ janet -e '(import ./bundle) (bundle/build (table :info (-> (slurp "info.jdn") parse)))'
 ```
 
 ### Installing
