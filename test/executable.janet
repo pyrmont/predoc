@@ -1,82 +1,104 @@
 (use ../deps/testament)
 
-(defn lines-to-stream
-  [lines]
+(defn- rmrf
+  [path]
+  (def sep (get {:windows "\\" :cygwin "\\" :mingw "\\"} (os/which) "/"))
+  (case (os/lstat path :mode)
+    :directory (do
+                 (each subpath (os/dir path)
+                   (rmrf (string path sep subpath)))
+                 (os/rmdir path))
+    nil nil # do nothing if file does not exist
+    (os/rm path)))
+
+(defn- devnull
+  []
+  (os/open (if (= :windows (os/which)) "NUL" "/dev/null") :rw))
+
+(defn- lines-to-stream [lines]
   (def [r w] (os/pipe))
-  (each line lines (:write w (string line "\n")))
+  (:write w lines)
   (:close w)
   r)
 
-(defn shell-capture
-  [cmd test_stdin]
-  (let [x (os/spawn cmd : {:in test_stdin :out :pipe :err :pipe})
+(defn- shell-capture [cmd test-stdin]
+  (let [x (os/spawn cmd : {:in test-stdin :out :pipe :err :pipe})
         o (:read (x :out) :all)
         e (:read (x :err) :all)]
     (:wait x)
-    [(get x :return-code)
-     (if o (string/split "\n" o))
-     (if e (string/split "\n" e))]))
+    [(get x :return-code) o e]))
 
 (deftest cli-no-args
-  (def [exit_code test_out test_err] 
-    (shell-capture ["./predoc"] stdin))
-  (is (= 1 exit_code))
-  (is (= nil test_out))
-  (is (deep=
-    @["predoc: path is required"
-      "Try 'predoc --help' for more information."
-      ""]
-    test_err)))
+  (def [exit-code test-out test-err]
+    (shell-capture ["./tmp/predoc"] stdin))
+  (def msg
+    ``
+    predoc: path is required
+    Try 'predoc --help' for more information.
+    ``)
+  (is (== 1 exit-code))
+  (is (== nil test-out))
+  (is (== (string msg "\n") test-err)))
 
 (deftest cli-bad-option
-  (def [exit_code test_out test_err] 
-    (shell-capture ["./predoc" "--bad-option"] stdin))
-  (is (= 1 exit_code))
-  (is (= nil test_out))
-  (is (deep=
-    @["predoc: unrecognized option '--bad-option'"
-      "Try 'predoc --help' for more information."
-      ""]
-    test_err)))
+  (def [exit-code test-out test-err]
+    (shell-capture ["./tmp/predoc" "--bad-option"] stdin))
+  (def msg
+    ``
+    predoc: unrecognized option '--bad-option'
+    Try 'predoc --help' for more information.
+    ``)
+  (is (== 1 exit-code))
+  (is (== nil test-out))
+  (is (== (string msg "\n") test-err)))
 
 (deftest cli-good-input
-  (def [exit_code test_out test_err] 
-    (shell-capture
-      ["./predoc" "--output" "-" "--name" "Testing" "-"]
-      (lines-to-stream
-        @["NAME"
-          "===="
-          ""
-          "**predoc** - converter from Predoc to mdoc"])))
-  (is (= 0 exit_code))
-  (is (deep=
-    @["."
-      ".Sh NAME"
-      ".Ic predoc"
-      ".Nd converter from Predoc to mdoc"
-      ""
-      ""]
-    (array/slice test_out 3))) # strip first 3 lines containing timestamp
-  (is (deep= @["stty: 'standard input': Not a tty" ""] test_err)))
+  (def input
+    ``
+    NAME
+    ===
+
+    **foobar** - putting the bar in your foo
+    ``)
+  (def output
+    ``
+    .
+    .Sh NAME
+    .Nm foobar
+    .Nd putting the bar in your foo
+    ``)
+  (def [exit-code test-out test-err]
+    (shell-capture ["./tmp/predoc" "--no-ad" "--name" "foobar" "--output" "-" "-"]
+                   (lines-to-stream input)))
+  (is (== 0 exit-code))
+  (is (== (string output "\n\n") test-out))
+  (is (== nil test-err)))
 
 (deftest cli-bad-input
-  (def [exit_code test_out test_err] 
-    (shell-capture
-      ["./predoc" "--output" "-" "--name" "Testing" "-"]
-      (lines-to-stream
-        @["---"
-          "Title: Testing(1)"
-          "---"])))
-  (is (= 1 exit_code))
-  (is (= nil test_out))
-  (is (deep=
-    @["stty: 'standard input': Not a tty"
-      "error: could not parse date in frontmatter"
-      "  in parse-date [lib/mdoc.janet] on line 133, column 6"
-      "  in render-prologue [lib/mdoc.janet] (tail call) on line 430, column 13"
-      "  in render-doc [lib/mdoc.janet] (tail call) on line 567, column 5"
-      "  in run [lib/cli.janet] (tail call) on line 116, column 21"
-      ""]
-    test_err)))
+  (def input
+    ``
+    ---
+    Title: foobar(1)
+    ---
+    ``)
+  (def output
+    ``
+    error: could not parse date in frontmatter
+      in parse-date [lib/mdoc.janet] on line 133, column 6
+      in render-prologue [lib/mdoc.janet] (tail call) on line 430, column 13
+      in render-doc [lib/mdoc.janet] (tail call) on line 567, column 5
+      in run [lib/cli.janet] (tail call) on line 116, column 21
+    ``)
+  (def [exit-code test-out test-err]
+    (shell-capture ["./tmp/predoc" "--name" "foobar" "--output" "-" "-"]
+                   (lines-to-stream input)))
+  (is (== 1 exit-code))
+  (is (== nil test-out))
+  (is (== (string output "\n") test-err)))
 
-(run-tests!)
+(defer (rmrf "tmp")
+  (os/mkdir "tmp")
+  (with [null (devnull)]
+    (print "building ./tmp/predoc...")
+    (os/execute ["jeep" "quickbin" "lib/cli.janet" "tmp/predoc"] :px {:out null :err null}))
+  (run-tests!))
