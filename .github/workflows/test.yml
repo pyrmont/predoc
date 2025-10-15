@@ -47,15 +47,6 @@ jobs:
     - name: "return to workspace directory"
       run: cd $GITHUB_WORKSPACE
       shell: bash
-    - name: "download jeep"
-      run: git clone --depth=1 https://github.com/pyrmont/jeep.git .jeep
-      shell: bash
-    - name: "install jeep"
-      run: cd .jeep && janet --install .
-      shell: bash
-    - name: "return to workspace directory"
-      run: cd $GITHUB_WORKSPACE
-      shell: bash
     - name: "run tests"
-      run: jeep test -R
+      run: 'for f in test/*.janet; do janet "$f" || { rc=$?; break; }; done; (exit ${rc:-0})'
       shell: bash

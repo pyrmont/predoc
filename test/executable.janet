@@ -1,5 +1,23 @@
 (use ../deps/testament)
 
+## Helpers
+
+(defn copy-file
+  [src-path dst-path]
+  (def buf-size 4096)
+  (def buf (buffer/new buf-size))
+  (with [src (file/open src-path :rb)]
+    (with [dst (file/open dst-path :wb)]
+      (while (def bytes (file/read src buf-size buf))
+        (file/write dst bytes)
+        (buffer/clear buf)))))
+
+(defn- lines-to-stream [lines]
+  (def [r w] (os/pipe))
+  (:write w lines)
+  (:close w)
+  r)
+
 (defn- rmrf
   [path]
   (def sep (get {:windows "\\" :cygwin "\\" :mingw "\\"} (os/which) "/"))
@@ -11,22 +29,14 @@
     nil nil # do nothing if file does not exist
     (os/rm path)))
 
-(defn- devnull
-  []
-  (os/open (if (= :windows (os/which)) "NUL" "/dev/null") :rw))
-
-(defn- lines-to-stream [lines]
-  (def [r w] (os/pipe))
-  (:write w lines)
-  (:close w)
-  r)
-
 (defn- shell-capture [cmd test-stdin]
   (let [x (os/spawn cmd : {:in test-stdin :out :pipe :err :pipe})
         o (:read (x :out) :all)
         e (:read (x :err) :all)]
     (:wait x)
     [(get x :return-code) o e]))
+
+## Tests
 
 (deftest cli-no-args
   (def [exit-code test-out test-err]
@@ -98,7 +108,17 @@
 
 (defer (rmrf "tmp")
   (os/mkdir "tmp")
-  (with [null (devnull)]
+  (var move? false)
+  (unless (= :file (os/stat "./predoc" :mode))
+    (set move? true)
     (print "building ./tmp/predoc...")
-    (os/execute ["jeep" "quickbin" "lib/cli.janet" "tmp/predoc"] :px {:out null :err null}))
+    (def info (-> (slurp "info.jdn") parse))
+    (def bundle (require "../bundle"))
+    (with-dyns [:out @"" :err @""]
+      (def build (module/value bundle 'build))
+      (build {:info info})))
+  (if move?
+    (os/rename "predoc" "tmp/predoc")
+    (copy-file "predoc" "tmp/predoc"))
+  (os/chmod "tmp/predoc" 8r755)
   (run-tests!))
