@@ -27,9 +27,8 @@ Options
 -------
 
 - **--format** _fmt_:
-  Set the format to _fmt_ which can be ``html``, ``jdn`` or ``mdoc``. The
-  default is ``mdoc``. The ``jdn`` format is primarily for debugging but I guess
-  I can't stop you using it for other purposes if that's the way you roll.
+  Set the format to _fmt_ which can be ``html``, ``jdn``, ``json`` or ``mdoc``.
+  The default is ``mdoc``.
 
 - **--name** _program_:
   Set the name of the subject of the document. If a value is not provide and

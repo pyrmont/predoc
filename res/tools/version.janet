@@ -1,4 +1,4 @@
-(import .../../lib/util)
+(import ../../lib/util)
 (import ./manpage)
 
 (def- paths
@@ -32,7 +32,11 @@
 
 (defn main
   [command version & args]
-  (def parent (-> (dyn :current-file) util/abspath util/parent util/parent))
+  (def parent (-> (dyn :current-file)
+                  (util/abspath)
+                  (util/parent)
+                  (util/parent)
+                  (util/parent)))
   (def to-update (map (fn [x] (string parent util/sep x)) paths))
   (each path to-update
     (unless (or (= "." path) (= ".." path))
@@ -44,4 +48,4 @@
           (update-jdn path version)
           (string/has-suffix? ".predoc" path)
           (update-predoc path version)))))
-  (manpage/main))
+  (manpage/main []))
