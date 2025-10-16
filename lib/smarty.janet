@@ -45,14 +45,14 @@
     (or (close-br? ch) (= fs ch) (= em ch) (= qm ch) (= cm ch) (= cl ch) (= sc ch)))
   (defn word? [ch]
     (has-value? word ch))
-  (defn guess [c res b i ps st]
+  (defn guess [c res b i st]
     (def op (if (= dq c) dqo sqo))
     (def cl (if (= dq c) dqc sqc))
     (def p (get b (dec i)))
     (def n (get b (inc i)))
     (def left-open (or (nil? p) (ws? p) (maybe-open? p)))
     (def right-open (or (word? n) (open-br? n)))
-    (def left-close (or (word? ps) (maybe-close? ps)))
+    (def left-close (or (word? p) (maybe-close? p)))
     (def right-close (or (nil? n) (ws? n) (maybe-close? n)))
     (def open?
       (cond
@@ -93,7 +93,6 @@
       (dec i)
       i))
   (def st @[])
-  (var ps nil)
   (var i 0)
   (while (def ch (get b i))
     (cond
@@ -105,7 +104,7 @@
         (buffer/push res (buffer/slice b start (inc i))))
       # double quote
       (= dq ch)
-      (guess ch res b i ps st)
+      (guess ch res b i st)
       # single quote
       (= sq ch)
       (cond
@@ -115,7 +114,7 @@
         # doesn't handle elisions
         # TODO: elision handling
         # default
-        (guess ch res b i ps st))
+        (guess ch res b i st))
       # backslash
       (= bs ch)
       (do
@@ -132,11 +131,9 @@
       # ellipsis
       (and (= fs ch) (= fs (get b (+ 1 i))) (= fs (get b (+ 2 i))))
       (do
-        (+= i 2)
-        (buffer/push res 0xE2 0x80 0xA6))
+        (buffer/push res 0xE2 0x80 0xA6)
+        (+= i 2))
       # default
       (buffer/push res ch))
-    (unless (ws? ch)
-      (set ps ch))
     (++ i))
   res)

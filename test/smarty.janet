@@ -27,7 +27,10 @@
   (is (== expect2 (s/pants input2)))
   (def input3 `'foo, 'bar'.'`)
   (def expect3 "\u2018foo, \u2018bar\u2019.\u2019")
-  (is (== expect3 (s/pants input3))))
+  (is (== expect3 (s/pants input3)))
+  (def input4 `It's '.'.`)
+  (def expect4 "It\u2019s \u2018.\u2019.")
+  (is (== expect4 (s/pants input4))))
 
 (deftest ellipsis
   (def input1 `foo... bar`)
