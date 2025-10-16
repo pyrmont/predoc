@@ -10,9 +10,11 @@ Predoc is a Markdown flavour specifically designed for writing man pages.
 > gaps in its implementation.
 
 This is the repository for the reference implementation of the parser and
-renderer written in the Janet programming language. It includes a command-line
-utility, `predoc`, which converts a Predoc document into a man page written in
-mdoc.
+renderer written in the [Janet programming language][janet-hp]. It includes a
+command-line utility, `predoc`, which converts a Predoc document into a man
+page written in mdoc.
+
+[janet-hp]: https://janet-lang.org
 
 You can try out Predoc in your browser on the [project homepage][ph].
 
