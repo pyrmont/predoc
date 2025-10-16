@@ -1,5 +1,5 @@
 {:name "predoc"
- :version "DEVEL"
+ :version "0.2.3"
  :description "A tool in Janet to convert man pages from Predoc to mdoc"
  :author "Michael Camilleri"
  :license "MIT"
