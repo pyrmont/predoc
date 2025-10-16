@@ -1,7 +1,8 @@
 (import ./parser :as p)
-(import ./html)
-(import ./jdn)
-(import ./mdoc)
+(import ./formats/html)
+(import ./formats/jdn)
+(import ./formats/json)
+(import ./formats/mdoc)
 
 (defn predoc->ast [predoc]
   (def root (-?> (peg/match p/grammar predoc) first))
@@ -14,6 +15,10 @@
 (defn predoc->jdn [predoc]
   (->> (predoc->ast predoc)
        (jdn/render-doc)))
+
+(defn predoc->json [predoc]
+  (->> (predoc->ast predoc)
+       (json/render-doc)))
 
 (defn predoc->mdoc [program predoc &named no-ad?]
   (def ast (predoc->ast predoc))

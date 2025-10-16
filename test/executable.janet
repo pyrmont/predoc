@@ -94,10 +94,10 @@
   (def output
     ``
     error: could not parse date in frontmatter
-      in parse-date [lib/mdoc.janet] on line 133, column 6
-      in render-prologue [lib/mdoc.janet] (tail call) on line 430, column 13
-      in render-doc [lib/mdoc.janet] (tail call) on line 567, column 5
-      in run [lib/cli.janet] (tail call) on line 116, column 21
+      in parse-date [lib/formats/mdoc.janet] on line 133, column 6
+      in render-prologue [lib/formats/mdoc.janet] (tail call) on line 430, column 13
+      in render-doc [lib/formats/mdoc.janet] (tail call) on line 567, column 5
+      in run [lib/cli.janet] (tail call) on line 121, column 21
     ``)
   (def [exit-code test-out test-err]
     (shell-capture ["./tmp/predoc" "--name" "foobar" "--output" "-" "-"]

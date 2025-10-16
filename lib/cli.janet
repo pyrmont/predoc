@@ -10,7 +10,7 @@
                        :proxy "path"
                        :req?  true}
            "--format" {:help    `The format to use for the output. Valid values
-                                are html, jdn and mdoc.`
+                                are html, jdn, json and mdoc.`
                        :default "mdoc"
                        :kind    :single
                        :short   "f"}
@@ -54,7 +54,10 @@
       (os/exit 1))
     # run command
     (do
-      (def formats {"html" :html "jdn" :jdn "mdoc" :mdoc})
+      (def formats {"html" :html
+                    "jdn"  :jdn
+                    "json" :json
+                    "mdoc" :mdoc})
       (def opts (parsed :opts))
       (def params (parsed :params))
       # set format
@@ -107,6 +110,8 @@
                     (fn [r] (p/predoc->html name* r :no-ad? no-ad?))
                     :jdn
                     (partial p/predoc->jdn)
+                    :json
+                    (partial p/predoc->json)
                     :mdoc
                     (fn [r]
                       (unless (= "-" i-path) (setdyn :predoc-file i-path))
