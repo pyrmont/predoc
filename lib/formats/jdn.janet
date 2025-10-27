@@ -58,7 +58,7 @@
     :array
     (render-indexed b value)
     :struct
-    (render-indexed b value true)
+    (render-dictionary b value true)
     :table
     (render-dictionary b value)
     :tuple
