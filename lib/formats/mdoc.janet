@@ -122,7 +122,7 @@
       (peg/match ~{:main (+ :ymd :us :uk)
                    :1-9 (* (? "0") '(range "19"))
                    :year '(4 :d)
-                   :mon (+ :1-9 '"11" '"12")
+                   :mon (+ '"10" '"11" '"12" :1-9)
                    :day (+ '(* "3" (set "01")) '(* (set "12") :d) :1-9)
                    :sep (set "-/")
                    :ymd (/ (* :year :sep :mon :sep :day) ,date-ymd)
