@@ -1,4 +1,4 @@
-import init from "./janet.714652e4.js";
+import init from "./janet.282246c4.js";
 
 let vm;
 

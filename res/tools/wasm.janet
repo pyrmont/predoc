@@ -24,17 +24,17 @@
                         (string/slice js (+ 17 janet-pos)))))
 
 (defn sha
-  [ver]
+  []
   (def [r w] (os/pipe))
-  (def [ok? res] (protect (os/execute ["git" "rev-list" "-n" "1" ver] :px {:out w})))
+  (def [ok? res] (protect (os/execute ["git" "rev-parse" "HEAD"] :px {:out w})))
   (:close w)
   (if ok?
     (-> (ev/read r :all) (string/trim) (string/slice 0 8))
     (error res)))
 
 (defn build
-  [ver cmd root]
-  (def name (string "janet." (sha ver)))
+  [cmd root]
+  (def name (string "janet." (sha)))
   (def pwd (string (os/cwd) "/"))
   (def bdir (string root s "res" s "wasm"))
   (def pdir (string root s "pages"))
@@ -102,9 +102,7 @@
   run as an argument to the script.
   ```
   [& args]
-  (def ver (get args 1))
-  (assert ver "provide the git tag")
-  (def cmd (get args 2 cli-cmd))
+  (def cmd (get args 1 cli-cmd))
   (def threeup (comp util/parent util/parent util/parent))
   (def bundle-root (-> (dyn :current-file) util/abspath threeup))
-  (build ver cmd bundle-root))
+  (build cmd bundle-root))
