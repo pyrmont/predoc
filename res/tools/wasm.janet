@@ -8,8 +8,33 @@
   (def env (require "../../init"))
   (spit (string bdir s "predoc.jimage") (make-image env)))
 
+(defn update-refs
+  [name root]
+  (def html-file (string root s "pages" s "index.html"))
+  (def html (slurp html-file))
+  (def dingus-pos (+ 10 (string/find "dingus.js?" html)))
+  (spit html-file (string (string/slice html 0 dingus-pos)
+                          (os/strftime "%Y%m%d%H%M")
+                          (string/slice html (+ 12 dingus-pos))))
+  (def js-file (string root s "pages" s "dingus.js"))
+  (def js (slurp js-file))
+  (def janet-pos (+ 2 (string/find "./janet." js)))
+  (spit js-file (string (string/slice js 0 janet-pos)
+                        (string name ".js")
+                        (string/slice js (+ 17 janet-pos)))))
+
+(defn sha
+  [ver]
+  (def [r w] (os/pipe))
+  (def [ok? res] (protect (os/execute ["git" "rev-list" "-n" "1" ver] :px {:out w})))
+  (:close w)
+  (if ok?
+    (-> (ev/read r :all) (string/trim) (string/slice 0 8))
+    (error res)))
+
 (defn build
-  [cmd root]
+  [ver cmd root]
+  (def name (string "janet." (sha ver)))
   (def pwd (string (os/cwd) "/"))
   (def bdir (string root s "res" s "wasm"))
   (def pdir (string root s "pages"))
@@ -25,7 +50,7 @@
          "emscripten/emsdk:4.0.14-arm64"
          "emcc"
          "-O3" # replace with "-O0" during debugging
-         "-o" "janet.js"
+         "-o" (string name ".js")
          "janet.c"
          "dingus.c"
          "-Ijanet"
@@ -59,14 +84,15 @@
        (eprint "Cannot run emcc using the Docker container."))))
   (unless (zero? result)
     (os/exit result))
-  (def wasm-src (string bdir s "janet.wasm"))
-  (def wasm-dest (string pdir s "janet.wasm"))
+  (def wasm-src (string bdir s name ".wasm"))
+  (def wasm-dest (string pdir s name ".wasm"))
   (print "Moving " (string/replace pwd "" wasm-src) " to " (string/replace pwd "" wasm-dest))
   (os/rename wasm-src wasm-dest)
-  (def js-src (string bdir s "janet.js"))
-  (def js-dest (string pdir s "janet.js"))
+  (def js-src (string bdir s name ".js"))
+  (def js-dest (string pdir s name ".js"))
   (print "Moving " (string/replace pwd "" js-src) " to " (string/replace pwd "" js-dest))
-  (os/rename js-src js-dest))
+  (os/rename js-src js-dest)
+  (update-refs name root))
 
 (defn main
   ```
@@ -76,7 +102,9 @@
   run as an argument to the script.
   ```
   [& args]
-  (def cmd (get args 1 cli-cmd))
+  (def ver (get args 1))
+  (assert ver "provide the git tag")
+  (def cmd (get args 2 cli-cmd))
   (def threeup (comp util/parent util/parent util/parent))
   (def bundle-root (-> (dyn :current-file) util/abspath threeup))
-  (build cmd bundle-root))
+  (build ver cmd bundle-root))
