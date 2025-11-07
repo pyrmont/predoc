@@ -1,7 +1,7 @@
 (import ../../lib/util)
 
 (def- s util/sep)
-(def- cli-cmd (if (= :macos (os/which)) "container" "docker"))
+(def- default-cmd "docker")
 
 (defn build-image
   [bdir]
@@ -33,7 +33,7 @@
     (error res)))
 
 (defn build
-  [cmd root]
+  [cmd root emsdk-tag]
   (def name (string "janet." (sha)))
   (def pwd (string (os/cwd) "/"))
   (def bdir (string root s "res" s "wasm"))
@@ -47,7 +47,7 @@
         [cmd "run" "--rm"
          "-v" (string (os/cwd) ":/src")
          "-w" "/src"
-         "emscripten/emsdk:4.0.14-arm64"
+         (string "emscripten/emsdk:" emsdk-tag)
          "emcc"
          "-O3" # replace with "-O0" during debugging
          "-o" (string name ".js")
@@ -96,13 +96,14 @@
 
 (defn main
   ```
-  This script uses a Docker container to run Emscripten. On macOS, the default
-  is to use Apple's 'container' CLI utility to run the container. On other
-  systems, the default is Docker's 'docker'. A user can specify the command to
-  run as an argument to the script.
+  This script uses a Docker container to run Emscripten. By default it will try
+  to run the container using `docker`. A different command (e.g. `podman`) can
+  be specified by calling the script with the name of the command as the second
+  argument (e.g. `janet res/tools/wasm.janet podman`).
   ```
   [& args]
-  (def cmd (get args 1 cli-cmd))
+  (def cmd (get args 1 default-cmd))
+  (def emsdk-tag (get args 2 "latest"))
   (def threeup (comp util/parent util/parent util/parent))
   (def bundle-root (-> (dyn :current-file) util/abspath threeup))
-  (build cmd bundle-root))
+  (build cmd bundle-root emsdk-tag))
