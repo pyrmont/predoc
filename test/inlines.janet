@@ -233,7 +233,7 @@
     ```
     \`foo\`
     ```)
-  (def expect ["`" "foo" "`"])
+  (def expect ["`foo`"])
   (is (== expect (parse-inlines input))))
 
 (deftest inline-breaks

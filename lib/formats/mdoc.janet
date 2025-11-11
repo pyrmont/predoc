@@ -185,11 +185,14 @@
         # backslash
         (= bs ch)
         (buffer/push b "\\e")
-        # hyphen
+        # hyphen NOTE: don't remember why checking (zero? i)
         (and (= ms ch) (zero? i) (ending-nl? b))
         (do
           (buffer/popn b 1)
           (buffer/push b " Ns -"))
+        # full stop
+        (and (= fs ch) (or (zero? i) (ending-nl? b)))
+        (buffer/push b "\\&.")
         # spaces at end of lines
         (and (= sp ch) (ending-nl? b))
         (when (string/has-suffix? "\\c\n" b)

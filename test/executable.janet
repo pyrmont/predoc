@@ -95,8 +95,8 @@
     ``
     error: could not parse date in frontmatter
       in parse-date [lib/formats/mdoc.janet] on line 133, column 6
-      in render-prologue [lib/formats/mdoc.janet] (tail call) on line 430, column 13
-      in render-doc [lib/formats/mdoc.janet] (tail call) on line 567, column 5
+      in render-prologue [lib/formats/mdoc.janet] (tail call) on line 433, column 13
+      in render-doc [lib/formats/mdoc.janet] (tail call) on line 570, column 5
       in run [lib/cli.janet] (tail call) on line 121, column 21
     ``)
   (def [exit-code test-out test-err]

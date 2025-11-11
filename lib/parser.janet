@@ -51,6 +51,13 @@
         (put node k nil)
         (remove-keys ks (get node :value []))))))
 
+(defn- add-str [arr s last-begin begin]
+  (when (< last-begin begin)
+    (def chunk (string/slice s last-begin begin))
+    (if (string? (array/peek arr))
+      (array/push arr (string (array/pop arr) chunk))
+      (array/push arr chunk))))
+
 (defn- match-delims [& args]
   (def res @[])
   (def s (last args))
@@ -76,8 +83,7 @@
       (array? m)
       (unless (empty? m)
         (def [d-type open? begin end] m)
-        (if (< s-begin begin)
-          (array/push siblings (string/slice s s-begin begin)))
+        (add-str siblings s s-begin begin)
         (set s-begin end)
         (if open?
           (do
@@ -95,21 +101,22 @@
       (do
         (def begin (get m :begin))
         (def end (get m :end))
-        (if (< s-begin begin)
-          (array/push siblings (string/slice s s-begin begin)))
+        (add-str siblings s s-begin begin)
         (set s-begin end)
         (cond
           # backslashed characters
           (= :esc (get m :type))
-          (array/push siblings (string/slice s (inc begin) end))
+          (do
+            (def char (string/slice s (inc begin) end))
+            (if (string? (array/peek siblings))
+              (array/push siblings (string (array/pop siblings) char))
+              (array/push siblings char)))
           # hard breaks
           (= :break (get m :type))
           (array/push siblings m)
           # default
-          (array/push siblings m)))
-      ))
-  (if (< s-begin (length s))
-    (array/push res (string/slice s s-begin)))
+          (array/push siblings m)))))
+  (add-str res s s-begin (length s))
   (remove-keys [:begin :end] res)
   res)
 

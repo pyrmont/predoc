@@ -621,8 +621,7 @@
            {:indent 2
             :type :paragraph
             :value ["qux"]}]}]}])
-  (is (== expect4 (parse-blocks input4)))
-  )
+  (is (== expect4 (parse-blocks input4))))
 
 (deftest block-paragraph
   (def input1
