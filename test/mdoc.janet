@@ -59,7 +59,7 @@
   (def input
     ```
     - foo
-    - \.bar
+    - .bar
     - baz
     ```)
   (def blocks (parse-blocks input))
@@ -160,5 +160,20 @@
 
     ```)
   (is (== expect actual)))
+
+(deftest mdoc-escaped-period
+  (def input
+    ```
+    Write abbreviations (i.e.\ like this). Or avoid them.
+    ```)
+  (def blocks (parse-blocks input))
+  (def actual (render-doc "test" blocks))
+  (def expect
+    ```
+    Write abbreviations (i.e.\u200B like this).
+    Or avoid them.
+
+    ```)
+  (is (== (string/replace `\u200B` "\u200B" expect) actual)))
 
 (run-tests!)

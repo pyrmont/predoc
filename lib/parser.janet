@@ -108,9 +108,16 @@
           (= :esc (get m :type))
           (do
             (def char (string/slice s (inc begin) end))
+            (def val
+              (cond
+                (= " " char)
+                "\u200B "
+                # theoretically this could render escaped Uncode sequences
+                # default
+                char))
             (if (string? (array/peek siblings))
-              (array/push siblings (string (array/pop siblings) char))
-              (array/push siblings char)))
+              (array/push siblings (string (array/pop siblings) val))
+              (array/push siblings val)))
           # hard breaks
           (= :break (get m :type))
           (array/push siblings m)
@@ -125,7 +132,8 @@
     # helpers
     :t (constant true)
     :f (constant false)
-    :ch (+ (* "\\" (set "\\`*_{}[]()#+-.!")) 1)
+    :ch (+ (* "\\" (set "\\`*_{}[]()#+-.! ")) 1)
+    # :ch (+ (* "\\" 1) 1)
     :qch (+ (* "\\" '(set "\\`*_{}[]()#+-.!")) '1)
     :hs " "
     :hs* (any :hs)
