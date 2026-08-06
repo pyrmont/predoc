@@ -4,25 +4,26 @@
 (def- s (get seps (os/which) "/"))
 
 (defn build [manifest &]
-  (def quickbins (get-in manifest [:info :quickbin] []))
-  (each [exe script] (pairs quickbins)
-    (declare/quickbin script exe)))
+  (def exes (get-in manifest [:info :artifacts :executables] []))
+  (each exe exes
+    (when (get exe :quickbin?)
+      (declare/quickbin (get exe :entry) (get exe :name)))))
 
 (defn install [manifest &]
-  (def manpages (get-in manifest [:info :manpage] []))
+  (def manpages (get-in manifest [:info :artifacts :manpages] []))
   (os/mkdir (string (dyn :syspath) s "man"))
   (os/mkdir (string (dyn :syspath) s "man" s "man1"))
   (os/mkdir (string (dyn :syspath) s "man" s "man7"))
   (each mp manpages
     (bundle/add-file manifest mp))
-  (def prefix (get-in manifest [:info :source :prefix]))
-  (def srcs (get-in manifest [:info :source :files] []))
-  (bundle/add-directory manifest prefix)
-  (each src srcs
-    (bundle/add manifest src (string prefix s src)))
-  (def bins (get-in manifest [:info :executable] []))
-  (each bin bins
-    (bundle/add-bin manifest bin))
-  (def quickbins (get-in manifest [:info :quickbin] []))
-  (each [exe _] (pairs quickbins)
-    (bundle/add-bin manifest exe)))
+  (def libs (get-in manifest [:info :artifacts :libraries] []))
+  (each lib libs
+    (def prefix (get lib :prefix))
+    (def paths (get lib :paths []))
+    (when prefix
+      (bundle/add-directory manifest prefix))
+    (each path paths
+      (bundle/add manifest path (string (when prefix (string prefix s)) path))))
+  (def exes (get-in manifest [:info :artifacts :executables] []))
+  (each exe exes
+    (bundle/add-bin manifest (get exe :name))))

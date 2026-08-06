@@ -5,21 +5,24 @@
  :license "MIT"
  :url "https://github.com/pyrmont/predoc"
  :repo "git+https://github.com/pyrmont/predoc"
-
- :vendored {
-   "deps" [
-    {:url "https://github.com/pyrmont/argy-bargy"
-     :prefix "argy-bargy"
-     :files ["argy-bargy.janet"
-             "LICENSE"]}
-    {:url "https://github.com/pyrmont/testament"
-     :prefix "testament"
-     :files ["lib/testament.janet"
-             "init.janet"
-             "LICENSE"]}]}
-
- :quickbin {"predoc" "lib/cli.janet"}
- :manpage ["man/man1/predoc.1"
-           "man/man7/predoc.7"]
- :source {:prefix "predoc"
-          :files ["deps" "lib" "init.janet"]}}
+ :dependencies []
+ :vendored [{:name "argy-bargy"
+             :url "https://github.com/pyrmont/argy-bargy"
+             :prefix "deps/argy-bargy"
+             :paths ["argy-bargy.janet"
+                     "LICENSE"]}
+            {:name "testament"
+             :url "https://github.com/pyrmont/testament"
+             :prefix "deps/testament"
+             :paths ["lib/testament.janet"
+                     "init.janet"
+                     "LICENSE"]}]
+ :artifacts {:executables [{:name "predoc"
+                            :quickbin? true
+                            :entry "lib/cli.janet"}]
+             :libraries [{:prefix "predoc"
+                          :paths ["deps"
+                                  "lib"
+                                  "init.janet"]}]
+             :manpages ["man/man1/predoc.1"
+                        "man/man7/predoc.7"]}}
