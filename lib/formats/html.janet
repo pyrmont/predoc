@@ -90,14 +90,14 @@
                    :month (capture ,month-peg)
                    :uk (/ (* :day " " :month (? ", ") :year) ,date-uk)
                    :us (/ (* :month " " :day ", " :year ) ,date-us)} s))
-    ([e]
+    ([_e]
      (error "could not parse date in frontmatter"))))
 
 # dependent helpers
 
 # render function (forward declaration)
 
-(varfn render [b node] nil)
+(varfn render [_b _node] nil)
 
 # independent render- functions
 
@@ -370,7 +370,7 @@
 
 (defn- render-table [b node]
   (buffer-line b "<table>")
-  (def [header rows] (get node :value))
+  (def rows (get-in node [:value 1]))
   (each row rows
     (buffer-line b "<tr>")
     (each cell row

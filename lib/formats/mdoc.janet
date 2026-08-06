@@ -129,14 +129,14 @@
                    :month (capture ,month-peg)
                    :uk (/ (* :day " " :month (? ", ") :year) ,date-uk)
                    :us (/ (* :month " " :day ", " :year ) ,date-us)} s))
-    ([e]
+    ([_e]
      (error "could not parse date in frontmatter"))))
 
 # dependent helpers
 
 # render function (forward declaration)
 
-(varfn render [b node] nil)
+(varfn render [_b _node] nil)
 
 # independent render- functions
 
@@ -447,7 +447,6 @@
       (buffer-line b `.\"` (if (or (nil? line) (empty? line)) "" " ") line)))
   (buffer-line b ".Dd " date)
   (buffer-line b ".Dt " title " " sec)
-  (def os (-> (filter (comp not nil?) [(get fm :os) (get fm :project) (get fm :version)]) ))
   (buffer-line b ".Os" (if (get fm :os)
                          (string " " (get fm :os))
                          "")
@@ -469,7 +468,7 @@
 
 (defn- render-table [b node]
   (buffer/push b ".Bl -column")
-  (def [header rows] (get node :value))
+  (def rows (get-in node [:value 1]))
   (def widths (array/new-filled (get node :cols) 0))
   (each row rows
     (var i 0)

@@ -29,7 +29,6 @@
 
 (defn pants [b]
   (def res (buffer/new (length b)))
-  (def in-raw? false)
   (def dqo "\u201C")
   (def dqc "\u201D")
   (def sqo "\u2018")

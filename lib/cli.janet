@@ -124,4 +124,4 @@
         (print document)
         (spit o-path* document)))))
 
-(defn main [& args] (run))
+(defn main [& _args] (run))

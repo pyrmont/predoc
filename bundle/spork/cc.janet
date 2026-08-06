@@ -18,7 +18,7 @@
 ### (pkg-config "sdl2" "vulkan")
 ### (with-dyns [*defines* {"GAME_BUILD" "devel-0.0"}
 ###             *visit* visit-execute-if-stale]
-###   (compile-and-link-executable "game" "main.c" "sound.c" "graphics.c"))
+###   (compile-and-link-executable "game" "main.c" "generate-c.janet" "sound.c" "graphics.c"))
 ###
 
 (import ./path)
@@ -45,7 +45,7 @@
 (defdyn *visit* "Optional callback to process each CLI command and its inputs and outputs")
 (defdyn *use-rpath* "Optional setting to enable using `(dyn *syspath*)` as the runtime path to load for Shared Objects. Defaults to true")
 (defdyn *use-rdynamic*
-  ``Optional setting to enable using `-rdynamic` or `-Wl,-export_dynamic` when linking executables.
+  ``Optional setting to enable using `-rdynamic` or `-Wl,-export_dynamic` when linking executables
   This is the preferred way on POSIX systems to let an executable load native modules dynamically at runtime.
   Defaults to true``)
 (defdyn *pkg-config-flags* "Extra flags to pass to pkg-config")
@@ -71,7 +71,7 @@
               (os/getenv "PREFIX")
               (path/join (dyn *syspath*) ".." "..")
               (path/join (dyn *syspath*) "..")
-              (try (path/join (sh/self-exe) ".." "..") ([e] nil))
+              (try (path/join (sh/self-exe) ".." "..") ([_e] nil))
               (dyn *syspath*)
               "/usr/"
               "/usr/local"
@@ -94,7 +94,7 @@
               (os/getenv "PREFIX")
               (path/join (dyn *syspath*) ".." "..")
               (path/join (dyn *syspath*) "..")
-              (try (path/join (sh/self-exe) ".." "..") ([e] nil))
+              (try (path/join (sh/self-exe) ".." "..") ([_e] nil))
               (dyn *syspath*)]
     (when test
       (def headercheck (path/join test "C" "janet.h"))
@@ -109,6 +109,7 @@
 ### Universal helpers for all toolchains
 ###
 
+(defmacro- notail [x] ~(do (def ,(gensym) ,x)))
 (defn- cflags [] (dyn *cflags* []))
 (defn- c++flags [] (dyn *c++flags* []))
 (defn- lflags [] (dyn *lflags* []))
@@ -119,10 +120,11 @@
 (defn- default-libs [] (dyn *libs* []))
 (defn- vcvars-cache [] (dyn *vcvars-cache* ".vcvars.jdn"))
 
-(defn- build-type []
+(defn build-type []
+  "Get build type"
   (def bt (dyn *build-type* :develop))
-  (if-not (in {:develop true :debug true :release true} bt)
-    (errorf "invalid build type %v, expected :release, :develop, or :debug" bt))
+  (if-not (in {:develop true :debug true :release true :native true} bt)
+    (errorf "invalid build type %v, expected :release, :develop, :debug, or :native" bt))
   bt)
 
 (defn- lib-path []
@@ -151,6 +153,7 @@
 (defn- exec
   "Call the (dyn *visit*) function on commands"
   [cmd inputs outputs message]
+  #(tracev cmd) -> how to find empty strings being passed as arguments
   ((dyn *visit* default-exec) cmd inputs outputs message) cmd)
 
 (defn- getsetdyn
@@ -171,6 +174,12 @@
     # object files
     (string/has-suffix? ".o" path) :o
     (string/has-suffix? ".obj" path) :o
+    # janet source - (C or C++ code generators)
+    (string/has-suffix? ".janet" path) :cjanet
+    (string/has-suffix? ".c.janet" path) :cjanet
+    (string/has-suffix? ".cc.janet" path) :c++janet
+    (string/has-suffix? ".cpp.janet" path) :c++janet
+    (string/has-suffix? ".cxx.janet" path) :c++janet
     # else
     (errorf "unknown source file type for %v" path)))
 
@@ -178,7 +187,7 @@
 ### Basic GCC-like Compiler Wrapper
 ###
 
-# GCC toolchain helpers
+# GCC-like toolchain helpers
 (defn- ar [] (dyn *ar* "ar"))
 (defn- cc [] (dyn *cc* "cc"))
 (defn- c++ [] (dyn *c++* "c++"))
@@ -187,6 +196,7 @@
     :debug ["-O0" "-g"]
     :develop ["-O2" "-g"]
     :release ["-O2"]
+    :native ["-O3" "-march=native" "-mtune=native"]
     []))
 (defn- defines []
   (def res @[])
@@ -221,17 +231,19 @@
   (def dl (if (= (target-os) :macos) ["-undefined" "dynamic_lookup"] []))
   (def sg (if (smart-libs) ["-Wl,--start-group"] []))
   (def eg (if (smart-libs) ["-Wl,--end-group"] []))
-  (def bs (if (not= (target-os) :macos) ["-Wl,-Bstatic"] []))
-  (def bd (if (not= (target-os) :macos) ["-Wl,-Bdynamic"] []))
+  (def slibs (static-libs))
+  (def dlibs (dynamic-libs))
+  (def bs (if (and (next slibs) (not= (target-os) :macos)) ["-Wl,-Bstatic"] []))
+  (def bd (if (and (or (next slibs) (next dlibs)) (not= (target-os) :macos)) ["-Wl,-Bdynamic"] []))
   [;sg
    ;(lflags)
    ;(if static ["-static"] [])
    ;dl
    ;(default-libs)
    ;bs
-   ;(static-libs)
+   ;slibs
    ;bd
-   ;(dynamic-libs)
+   ;dlibs
    ;(if static bs []) # put back to static linking so the -static flag works.
    ;eg
    ;(rpath)])
@@ -255,43 +267,58 @@
 (defn compile-c
   "Compile a C source file to an object file. Return the command arguments."
   [from to]
-  (exec [(cc) (ccstd) ;(opt) ;(cflags) ;(extra-paths) "-fPIC" ;(defines) "-c" from "-o" to "-pthread"]
-        [from] [to] (string "compiling " from "...")))
+  (notail
+    (exec [(cc) (ccstd) ;(opt) ;(cflags) ;(extra-paths) "-fPIC" ;(defines) "-c" from "-o" to "-pthread"]
+          [from] [to] (string "compiling " from "..."))))
 
 (defn compile-c++
   "Compile a C++ source file to an object file. Return the command arguments."
   [from to]
-  (exec [(c++) (c++std) ;(opt) ;(c++flags) ;(extra-paths) "-fPIC" ;(defines) "-c" from "-o" to "-pthread"]
-        [from] [to] (string "compiling " from "...")))
+  (notail
+    (exec [(c++) (c++std) ;(opt) ;(c++flags) ;(extra-paths) "-fPIC" ;(defines) "-c" from "-o" to "-pthread"]
+          [from] [to] (string "compiling " from "..."))))
 
 (defn link-shared-c
   "Link a C program to make a shared library. Return the command arguments."
   [objects to]
-  (exec [(cc) (ccstd) ;(opt) ;(cflags) ;(extra-link-paths) "-o" to ;objects "-pthread" ;(libs false) ;(dynamic-libs) "-shared"]
-        objects [to] (string "linking " to "...")))
+  (notail
+    (exec [(cc) (ccstd) ;(opt) ;(cflags) ;(extra-link-paths) "-o" to ;objects "-pthread" ;(libs false) ;(dynamic-libs) "-shared"]
+          objects [to] (string "linking " to "..."))))
 
 (defn link-shared-c++
   "Link a C++ program to make a shared library. Return the command arguments."
   [objects to]
-  (exec [(c++) (c++std) ;(opt) ;(c++flags) ;(extra-link-paths) "-o" to ;objects "-pthread" ;(libs false) ;(dynamic-libs) "-shared"]
-        objects [to] (string "linking " to "...")))
+  (notail
+    (exec [(c++) (c++std) ;(opt) ;(c++flags) ;(extra-link-paths) "-o" to ;objects "-pthread" ;(libs false) ;(dynamic-libs) "-shared"]
+          objects [to] (string "linking " to "..."))))
 
 (defn link-executable-c
   "Link a C program to make an executable. Return the command arguments."
   [objects to &opt make-static]
-  (exec [(cc) (ccstd) ;(opt) ;(cflags) ;(extra-link-paths) "-o" to ;objects ;(rdynamic) "-pthread" ;(libs make-static)]
-        objects [to] (string "linking " to "...")))
+  (notail
+    (exec [(cc) (ccstd) ;(opt) ;(cflags) ;(extra-link-paths) "-o" to ;objects ;(rdynamic) "-pthread" ;(libs make-static)]
+          objects [to] (string "linking " to "..."))))
 
 (defn link-executable-c++
   "Link a C++ program to make an executable. Return the command arguments."
   [objects to &opt make-static]
-  (exec [(c++) (c++std) ;(opt) ;(c++flags) ;(extra-link-paths) "-o" to ;objects ;(rdynamic) "-pthread" ;(libs make-static)]
-        objects [to] (string "linking " to "...")))
+  (notail
+    (exec [(c++) (c++std) ;(opt) ;(c++flags) ;(extra-link-paths) "-o" to ;objects ;(rdynamic) "-pthread" ;(libs make-static)]
+          objects [to] (string "linking " to "..."))))
 
 (defn make-archive
   "Make an archive file. Return the command arguments."
   [objects to]
-  (exec [(ar) "rcs" to ;objects] objects [to] (string "archiving " to "...")))
+  (notail
+    (exec [(ar) "rcs" to ;objects] objects [to] (string "archiving " to "..."))))
+
+(defn generic-preprocess
+  "Execute a C generating command as part of the build process. Useful for CJanet or other DSLs."
+  [from to]
+  (notail
+    (exec [(sh/self-exe) "-e" "(put root-env *out* (file/open (get (dyn *args*) 3) :w))" from to]
+          [from] [to]
+          (string "generating C source from " from " to " to "..."))))
 
 # Compound commands
 
@@ -326,6 +353,17 @@
       (do
         (set has-cpp true)
         (array/push cmds-into (compile-c++ source o))
+        (array/push objects o))
+      :cjanet
+      (let [oc (string o ".c")]
+        (array/push cmds-into (generic-preprocess source oc))
+        (array/push cmds-into (compile-c oc o))
+        (array/push objects o))
+      :c++janet
+      (let [oc (string o ".cpp")]
+        (set has-cpp true)
+        (array/push cmds-into (generic-preprocess source oc))
+        (array/push cmds-into (compile-c++ oc o))
         (array/push objects o))
       # else
       (errorf "unknown source file type for %v" source)))
@@ -417,7 +455,7 @@
     (set found-path vcv)
     (do
       (loop [pf :in ["Program Files" "Program Files (x86)"]
-             y :in [2022 2019 2017]
+             y :in [18 2022 2019 2017] # vc18 -> VS 2026
              e :in ["Enterprise" "Professional" "Community" "BuildTools"]]
         (def path (loc pf y e))
         (when (os/stat path :mode)
@@ -509,7 +547,7 @@
 
 (defn msvc-link-executable
   "Link a C/C++ program with MSVC to make an executable. Return the command arguments."
-  [objects to &opt make-static]
+  [objects to &opt _make-static]
   (exec [(link.exe) "/nologo" (string "/OUT:" to) ;objects ;(msvc-link-paths) ;(msvc-libs) ;(lflags)]
         objects [to] (string "linking " to "...")))
 
@@ -540,6 +578,16 @@
       :c++
       (do
         (array/push cmds-into (msvc-compile-c++ source o))
+        (array/push objects o))
+      :cjanet
+      (let [oc (string o ".c")]
+        (array/push cmds-into (generic-preprocess source oc))
+        (array/push cmds-into (msvc-compile-c oc o))
+        (array/push objects o))
+      :c++janet
+      (let [oc (string o ".cpp")]
+        (array/push cmds-into (generic-preprocess source oc))
+        (array/push cmds-into (msvc-compile-c++ oc o))
         (array/push objects o))
       # else
       (errorf "unknown source file type for %v" source)))
@@ -580,7 +628,7 @@
 
 (defn visit-clean
   "A visiting function that will remove all outputs."
-  [cmd inputs outputs message]
+  [_cmd _inputs outputs _message]
   (print "cleaing " (string/join outputs " ") "...")
   (each output outputs
     (sh/rm output)))
@@ -616,15 +664,15 @@
 
 (defn visit-execute
   "A function that can be provided as `(dyn *visit*)` that will execute commands."
-  [cmd inputs outputs message]
+  [cmd _inputs _outputs message]
   (if (dyn :verbose)
     (do
       (eprint (string/join cmd " "))
       (flush)
       (exec-linebuffered cmd))
     (do
-      (print message)
-      (with [proc (os/spawn cmd :p {:out :pipe :err :pipe})]
+      (unless (dyn :quiet) (print message))
+      (with [proc (os/spawn (map string cmd) :p {:out :pipe :err :pipe})]
         (def [out err exit] (ev/gather
                               (ev/read (proc :out) :all)
                               (ev/read (proc :err) :all)
@@ -648,7 +696,7 @@
 
 (defn visit-execute-quiet
   "A function that can be provided as `(dyn *visit*)` that will execute commands quietly."
-  [cmd inputs outputs message]
+  [cmd _inputs _outputs _message]
   (with [devnull (sh/devnull)]
     (os/execute cmd :px {:out devnull :err devnull})))
 
@@ -657,7 +705,7 @@
   [cmd inputs outputs message]
   (def rules (dyn *rules* (curenv)))
   (build-rules/build-rule
-    rules outputs @[;inputs]
+    rules outputs inputs
     (visit-execute cmd inputs outputs message)))
 
 ###
@@ -676,26 +724,25 @@
   (defer (sh/rm temp)
     (os/mkdir temp)
     (spit src test-source-code)
-    (def result
-      (try
-        (with-dyns [*visit* visit-execute-quiet
-                    *build-dir* temp
-                    *static-libs* []
-                    *dynamic-libs* []
-                    *libs* []]
-          (setdyn binding [libname])
-          (compile-and-link-executable executable src)
-          (with [devnull (sh/devnull)]
-            (os/execute [executable] :x {:out devnull :err devnull}))
-          true)
-        ([e]
-          false)))))
+    (try
+      (with-dyns [*visit* visit-execute-quiet
+                  *build-dir* temp
+                  *static-libs* []
+                  *dynamic-libs* []
+                  *libs* []]
+        (setdyn binding [libname])
+        (compile-and-link-executable executable src)
+        (with [devnull (sh/devnull)]
+          (os/execute [executable] :x {:out devnull :err devnull}))
+        true)
+      ([_e]
+        false))))
 
 (defn- search-libs-impl
-  [dynb libs]
+  [dynb libraries]
   (def ls (getsetdyn dynb))
   (def notfound @[])
-  (each lib libs
+  (each lib libraries
     (def llib (if (string/has-prefix? "-l" lib) lib (string "-l" lib)))
     (if (check-library-exists llib dynb)
       (array/push ls llib)
@@ -706,22 +753,22 @@
   "Search for libraries on the current POSIX system and configure `(dyn *libs*)`.
   This is done by checking for the existence of libraries with
   `check-library-exists`. Returns an array of libraries that were not found."
-  [& libs]
-  (search-libs-impl *libs* libs))
+  [& libraries]
+  (search-libs-impl *libs* libraries))
 
 (defn search-static-libraries
   "Search for static libraries on the current POSIX system and configure `(dyn *static-libs*)`.
   This is done by checking for the existence of libraries with
   `check-library-exists`. Returns an array of libraries that were not found."
-  [& libs]
-  (search-libs-impl *static-libs* libs))
+  [& libraries]
+  (search-libs-impl *static-libs* libraries))
 
 (defn search-dynamic-libraries
   "Search for dynamic libraries on the current POSIX system and configure `(dyn *dynamic-libraries*)`.
   This is done by checking for the existence of libraries with
   `check-library-exists`. Returns an array of libraries that were not found."
-  [& libs]
-  (search-libs-impl *dynamic-libs* libs))
+  [& libraries]
+  (search-libs-impl *dynamic-libs* libraries))
 
 ###
 ### Package Config wrapper to find libraries and set flags
@@ -731,23 +778,31 @@
   [& cmd]
   (def pkg-config-path (or (lib-path) (dyn *syspath* ".")))
   # Janet may be installed in a non-standard location, so we need to tell pkg-config where to look
-  (def wp (string "--with-path=" pkg-config-path))
-  (def pkp (string "--with-path=" (path/join pkg-config-path "pkgconfig")))
+  # by appending PKG_CONFIG_PATH environment variable.
+  (def pkp (path/join pkg-config-path "pkgconfig"))
+  (def s (if (= (target-os) :windows) ";" ":"))
+  (def pcp (string (if-let [exist (os/getenv "PKG_CONFIG_PATH")] (string exist s) "") pkg-config-path s pkp))
   (def extra (dyn *pkg-config-flags* []))
-  (def output (sh/exec-slurp "pkg-config" wp pkp ;extra ;cmd))
-  (string/split " " (string/trim output)))
+  (def output
+    (with [proc (os/spawn ["pkg-config" ;extra ;cmd] :xpe {:out :pipe "PKG_CONFIG_PATH" pcp})]
+      (let [[out] (ev/gather
+                    (ev/read (proc :out) :all)
+                    (os/proc-wait proc))]
+        (if out (string/trimr out) ""))))
+
+  (filter next (string/split " " (string/trim output))))
 
 (defn pkg-config
   "Setup defines, cflags, and library flags from pkg-config."
   [& pkg-config-libraries]
-  (def cflags (pkg-config-impl "--cflags" ;pkg-config-libraries))
-  (def lflags (pkg-config-impl "--libs-only-L" "--libs-only-other" ;pkg-config-libraries))
-  (def libs (pkg-config-impl "--libs-only-l" ;pkg-config-libraries))
-  (def leftovers (search-libraries ;libs))
+  (def my-cflags (pkg-config-impl "--cflags" ;pkg-config-libraries))
+  (def my-lflags (pkg-config-impl "--libs-only-L" "--libs-only-other" ;pkg-config-libraries))
+  (def my-libs (pkg-config-impl "--libs-only-l" ;pkg-config-libraries))
+  (def leftovers (search-libraries ;my-libs))
   (unless (empty? leftovers)
     (errorf "could not find libraries %j" leftovers))
-  (setdyn *cflags* (array/concat @[] (getsetdyn *cflags*) cflags))
-  (setdyn *lflags* (array/concat @[] (getsetdyn *lflags*) lflags))
+  (setdyn *cflags* (array/concat @[] (getsetdyn *cflags*) my-cflags))
+  (setdyn *lflags* (array/concat @[] (getsetdyn *lflags*) my-lflags))
   nil)
 
 ###

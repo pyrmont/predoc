@@ -11,7 +11,7 @@
   (-= level amt)
   (set indent (string/repeat " " level)))
 
-(varfn render [b value])
+(varfn render [_b _value])
 
 (defn- render-dictionary [b value]
   (buffer/push b "{")
