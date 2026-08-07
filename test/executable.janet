@@ -10,11 +10,10 @@
 
 (defn- rmrf
   [path]
-  (def sep (get {:windows "\\" :cygwin "\\" :mingw "\\"} (os/which) "/"))
   (case (os/lstat path :mode)
     :directory (do
                  (each subpath (os/dir path)
-                   (rmrf (string path sep subpath)))
+                   (rmrf (string path "/" subpath)))
                  (os/rmdir path))
     nil nil # do nothing if file does not exist
     (os/rm path)))
@@ -120,6 +119,6 @@
     (with-dyns [:out @"" :err @""]
       (def build (module/value bundle 'build))
       (build {:info test-info})))
-  (os/rename "predoc-test" "tmp/predoc")
+  (os/rename "_build/predoc-test" "tmp/predoc")
   (os/chmod "tmp/predoc" 8r755)
   (run-tests!))
