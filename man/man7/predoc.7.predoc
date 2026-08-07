@@ -608,6 +608,20 @@ This is a *variation* on Markdown. The use of ``_`` is reserved for arguments
 When rendered to `mdoc(7)`, emphasis text produces text in an italic font using
 the ``Em`` macro.
 
+Escaped Spaces
+--------------
+
+An escaped space is denoted by a backslash immediately before the space.
+
+````
+Goodbye, Mr.\ Anderson.
+````
+
+This is an *extension* to Markdown. Escaping a space after an abbreviation
+prevents `mdoc(7)` from treating the abbreviation's final period as the end of
+a sentence and inserting an additional space. The escaped space is rendered as
+a normal space.
+
 Environment Variables
 ---------------------
 
