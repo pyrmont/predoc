@@ -161,6 +161,34 @@
     ```)
   (is (== expect actual)))
 
+(deftest mdoc-raw-opening-delimiter
+  (def input
+    ```
+    ``(``
+    ```)
+  (def blocks (parse-blocks input))
+  (def actual (render-doc "test" blocks))
+  (def expect
+    ```
+    .Ql "\&\*(lp"
+
+    ```)
+  (is (== expect actual)))
+
+(deftest mdoc-raw-text
+  (def input
+    ```
+    ``foo``
+    ```)
+  (def blocks (parse-blocks input))
+  (def actual (render-doc "test" blocks))
+  (def expect
+    ```
+    .Ql "foo"
+
+    ```)
+  (is (== expect actual)))
+
 (deftest mdoc-escaped-period
   (def input
     ```

@@ -15,6 +15,7 @@
 (def- bs 92)
 (def- bc 93)
 
+(def- delimiters "([.,:;)]?!|")
 (def- trail-delims ".,:;)]?!")
 (def- alphabet "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 (def- macros [
@@ -462,8 +463,12 @@
   (defn backticks? [s]
     (and (string/has-prefix? " `" s)
          (string/has-suffix? "` " s)))
-  (buffer/push b ".Ql \"")
-  (buffer-esc b (if (backticks? s) (string/slice s 1 -2) s) true)
+  (def value (if (backticks? s) (string/slice s 1 -2) s))
+  (def delimiter? (and (= 1 (length value))
+                       (string/check-set delimiters value)))
+  # buffer-esc already prefixes a full stop with \&.
+  (buffer/push b ".Ql \"" (if (and delimiter? (not= "." value)) "\\&" ""))
+  (buffer-esc b value true)
   (buffer/push b "\"" nl))
 
 (defn- render-table [b node]
