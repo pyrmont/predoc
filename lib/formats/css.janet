@@ -126,6 +126,11 @@ div.manpage div.codeblock {
   white-space: pre;
 }
 
+div.manpage pre {
+  margin-left: 2rem;
+  overflow-x: auto;
+}
+
 div.manpage blockquote {
   border-left: 5px solid #d3d3d3;
   color: #808080;

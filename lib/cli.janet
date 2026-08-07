@@ -134,6 +134,9 @@
       (def input (if (= "-" i-path)
                    (file/read stdin :all)
                    (slurp i-path)))
+      # set input path for resolving paths in the frontmatter
+      (unless (= "-" i-path)
+        (setdyn :predoc-file i-path))
       # determine render function
       (def render (case format
                     :html
@@ -146,9 +149,7 @@
                     :json
                     (partial p/predoc->json)
                     :mdoc
-                    (fn [r]
-                      (unless (= "-" i-path) (setdyn :predoc-file i-path))
-                      (p/predoc->mdoc name* r :no-ad? no-ad?))
+                    (fn [r] (p/predoc->mdoc name* r :no-ad? no-ad?))
                     (error "format renderer not implemented")))
       # render document
       (def document (render input))

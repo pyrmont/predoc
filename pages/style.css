@@ -167,7 +167,7 @@ div.manpage p.synopsis span.name {
   grid-column: 1;
 }
 
-div.manpage p.synopsis div.rest {
+div.manpage p.synopsis span.rest {
   grid-column: 2;
 }
 
@@ -235,6 +235,11 @@ div.manpage div.codeblock {
   margin-left: 2rem;
   overflow-x: auto;
   white-space: pre;
+}
+
+div.manpage pre {
+  margin-left: 2rem;
+  overflow-x: auto;
 }
 
 @media (max-width: 600px) {

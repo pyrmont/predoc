@@ -73,6 +73,79 @@
   (def actual (render-page "test" blocks :css-path `a"b.css`))
   (is (string/find `href="a&quot;b.css"` actual)))
 
+(deftest html-heading-has-id
+  (def input
+    ```
+    EXIT STATUS
+    ===========
+
+    Sub Head
+    --------
+    ```)
+  (def actual (render-doc "test" (parse-blocks input)))
+  (is (string/find `<h2 class="section" id="EXIT-STATUS">EXIT STATUS</h2>` actual))
+  (is (string/find `<h3 class="subsection" id="Sub-Head">Sub Head</h3>` actual)))
+
+(deftest html-section-xref-matches-heading-id
+  (def input
+    ```
+    NAME
+    ====
+
+    See `<EXIT STATUS>` below.
+
+    EXIT STATUS
+    ===========
+
+    foo
+    ```)
+  (def actual (render-doc "test" (parse-blocks input)))
+  (is (string/find `<a href="#EXIT-STATUS">EXIT STATUS</a>` actual))
+  (is (string/find `id="EXIT-STATUS"` actual)))
+
+(deftest html-mdoc-block-in-pre
+  (def input
+    (string "before\n\n```\n.Sh RAW\nroff <content> & more\n```\n\nafter"))
+  (def actual (render-doc "test" (parse-blocks input)))
+  (is (string/find "<pre>.Sh RAW\nroff &lt;content&gt; &amp; more\n</pre>" actual))
+  (is (string/find "<p>before</p>" actual))
+  (is (string/find "<p>after</p>" actual)))
+
+(deftest html-tagged-list-head-escaped
+  (def input
+    ```
+    - >0:
+      An error occurred.
+    ```)
+  (def actual (render-doc "test" (parse-blocks input)))
+  (is (string/find "<h4>&gt;0</h4>" actual))
+  (is (not (string/find "<h4>>0</h4>" actual))))
+
+(deftest html-licence-resolved-against-input-file
+  (def dir "tmp-html-test")
+  (def licence-path (string dir "/doc.license"))
+  (defer (do (os/rm licence-path) (os/rmdir dir))
+    (os/mkdir dir)
+    (spit licence-path "Licence line\n")
+    (def input
+      (string "---\n"
+              "Title: TEST(1)\n"
+              "Date: March 15, 2013\n"
+              "Project: Test\n"
+              "Version: 1.0\n"
+              "License: ./doc.license\n"
+              "---\n\n"
+              "foo"))
+    (def blocks (parse-blocks input))
+    (def [fragment page]
+      (with-dyns [:predoc-file (string dir "/doc.predoc")]
+        [(render-doc "test" blocks) (render-page "test" blocks)]))
+    # the licence precedes anything that opens, in both renderings
+    (is (< (string/find "Licence line" fragment)
+           (string/find `<div class="manpage">` fragment)))
+    (is (< (string/find "Licence line" page)
+           (string/find "<!doctype html>" page)))))
+
 (deftest html-fragment-unchanged
   (def blocks (parse-blocks "foo"))
   (def actual (render-doc "test" blocks))
