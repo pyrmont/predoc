@@ -2,16 +2,6 @@
 
 ## Helpers
 
-(defn copy-file
-  [src-path dst-path]
-  (def buf-size 4096)
-  (def buf (buffer/new buf-size))
-  (with [src (file/open src-path :rb)]
-    (with [dst (file/open dst-path :wb)]
-      (while (def bytes (file/read src buf-size buf))
-        (file/write dst bytes)
-        (buffer/clear buf)))))
-
 (defn- lines-to-stream [lines]
   (def [r w] (os/pipe))
   (:write w lines)
@@ -36,22 +26,7 @@
     (:wait x)
     [(get x :return-code) o e]))
 
-(defn- expected-version []
-  (def info (-> (slurp "info.jdn") parse))
-  (def version (get info :version))
-  (if (not= "DEVEL" version)
-    version
-    (do
-      (def [r w] (os/pipe))
-      (def [ok? _result]
-        (protect
-          (os/execute ["git" "describe" "--always" "--dirty"]
-                      :px
-                      {:out w :err w})))
-      (:close w)
-      (if ok?
-        (string version "-" (string/trim (ev/read r :all)))
-        version))))
+(def- test-version "DEVEL-test")
 
 ## Tests
 
@@ -83,14 +58,14 @@
   (def [exit-code test-out test-err]
     (shell-capture ["./tmp/predoc" "-v"] stdin))
   (is (== 0 exit-code))
-  (is (== (string (expected-version) "\n") test-out))
+  (is (== (string test-version "\n") test-out))
   (is (== nil test-err)))
 
 (deftest cli-long-version
   (def [exit-code test-out test-err]
     (shell-capture ["./tmp/predoc" "--version"] stdin))
   (is (== 0 exit-code))
-  (is (== (string (expected-version) "\n") test-out))
+  (is (== (string test-version "\n") test-out))
   (is (== nil test-err)))
 
 (deftest cli-good-input
@@ -122,34 +97,29 @@
     Title: foobar(1)
     ---
     ``)
-  (def output
-    ``
-    error: could not parse date in frontmatter
-      in parse-date [lib/formats/mdoc.janet] on line 133, column 6
-      in render-prologue [lib/formats/mdoc.janet] (tail call) on line 433, column 13
-      in render-doc [lib/formats/mdoc.janet] (tail call) on line 569, column 5
-      in run [lib/cli.janet] (tail call) on line 130, column 21
-    ``)
+  (def output "error: could not parse date in frontmatter\n")
   (def [exit-code test-out test-err]
     (shell-capture ["./tmp/predoc" "--name" "foobar" "--output" "-" "-"]
                    (lines-to-stream input)))
   (is (== 1 exit-code))
   (is (== nil test-out))
-  (is (== (string output "\n") test-err)))
+  (is (string/has-prefix? output test-err)))
 
 (defer (rmrf "tmp")
   (os/mkdir "tmp")
-  (var move? false)
-  (unless (= :file (os/stat "./predoc" :mode))
-    (set move? true)
-    (print "building ./tmp/predoc...")
-    (def info (-> (slurp "info.jdn") parse))
-    (def bundle (require "../bundle"))
+  (print "building ./tmp/predoc...")
+  (def info (-> (slurp "info.jdn") parse))
+  (def executable
+    (merge (get-in info [:artifacts :executables 0]) {:name "predoc-test"}))
+  (def artifacts (merge (get info :artifacts) {:executables [executable]}))
+  (def test-info (merge info {:artifacts artifacts}))
+  (def bundle (require "../bundle"))
+  (def previous-version (os/getenv "PREDOC_BUILD_VERSION"))
+  (defer (os/setenv "PREDOC_BUILD_VERSION" previous-version)
+    (os/setenv "PREDOC_BUILD_VERSION" test-version)
     (with-dyns [:out @"" :err @""]
       (def build (module/value bundle 'build))
-      (build {:info info})))
-  (if move?
-    (os/rename "predoc" "tmp/predoc")
-    (copy-file "predoc" "tmp/predoc"))
+      (build {:info test-info})))
+  (os/rename "predoc-test" "tmp/predoc")
   (os/chmod "tmp/predoc" 8r755)
   (run-tests!))

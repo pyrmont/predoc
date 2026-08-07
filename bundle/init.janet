@@ -4,21 +4,23 @@
 (def- s (get seps (os/which) "/"))
 
 (defn- build-version [manifest]
-  (def version (get-in manifest [:info :version]))
-  (if (not= "DEVEL" version)
-    version
-    (do
-      (def root (get manifest :local-source (os/cwd)))
-      (def [r w] (os/pipe))
-      (def [ok? _result]
-        (protect
-          (os/execute ["git" "-C" root "describe" "--always" "--dirty"]
-                      :px
-                      {:out w :err w})))
-      (:close w)
-      (if ok?
-        (string version "-" (string/trim (ev/read r :all)))
-        version))))
+  (or (os/getenv "PREDOC_BUILD_VERSION")
+      (do
+        (def version (get-in manifest [:info :version]))
+        (if (not= "DEVEL" version)
+          version
+          (do
+            (def root (get manifest :local-source (os/cwd)))
+            (def [r w] (os/pipe))
+            (def [ok? _result]
+              (protect
+                (os/execute ["git" "-C" root "describe" "--always" "--dirty"]
+                            :px
+                            {:out w :err w})))
+            (:close w)
+            (if ok?
+              (string version "-" (string/trim (ev/read r :all)))
+              version))))))
 
 (defn build [manifest &]
   (def exes (get-in manifest [:info :artifacts :executables] []))
