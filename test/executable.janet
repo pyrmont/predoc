@@ -36,6 +36,23 @@
     (:wait x)
     [(get x :return-code) o e]))
 
+(defn- expected-version []
+  (def info (-> (slurp "info.jdn") parse))
+  (def version (get info :version))
+  (if (not= "DEVEL" version)
+    version
+    (do
+      (def [r w] (os/pipe))
+      (def [ok? _result]
+        (protect
+          (os/execute ["git" "describe" "--always" "--dirty"]
+                      :px
+                      {:out w :err w})))
+      (:close w)
+      (if ok?
+        (string version "-" (string/trim (ev/read r :all)))
+        version))))
+
 ## Tests
 
 (deftest cli-no-args
@@ -61,6 +78,20 @@
   (is (== 1 exit-code))
   (is (== nil test-out))
   (is (== (string msg "\n") test-err)))
+
+(deftest cli-short-version
+  (def [exit-code test-out test-err]
+    (shell-capture ["./tmp/predoc" "-v"] stdin))
+  (is (== 0 exit-code))
+  (is (== (string (expected-version) "\n") test-out))
+  (is (== nil test-err)))
+
+(deftest cli-long-version
+  (def [exit-code test-out test-err]
+    (shell-capture ["./tmp/predoc" "--version"] stdin))
+  (is (== 0 exit-code))
+  (is (== (string (expected-version) "\n") test-out))
+  (is (== nil test-err)))
 
 (deftest cli-good-input
   (def input
@@ -97,7 +128,7 @@
       in parse-date [lib/formats/mdoc.janet] on line 133, column 6
       in render-prologue [lib/formats/mdoc.janet] (tail call) on line 433, column 13
       in render-doc [lib/formats/mdoc.janet] (tail call) on line 569, column 5
-      in run [lib/cli.janet] (tail call) on line 121, column 21
+      in run [lib/cli.janet] (tail call) on line 130, column 21
     ``)
   (def [exit-code test-out test-err]
     (shell-capture ["./tmp/predoc" "--name" "foobar" "--output" "-" "-"]

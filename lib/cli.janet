@@ -1,5 +1,6 @@
 (import ../deps/argy-bargy/argy-bargy :as argy)
 (import ./predoc :as p)
+(import ./version)
 
 (def config
   ```
@@ -31,6 +32,11 @@
                        :kind  :single
                        :proxy "path"
                        :short "o"}
+           "-------------------------------------------"
+           "--version" {:help  "Show version information."
+                        :kind  :flag
+                        :noex? true
+                        :short "v"}
            "-------------------------------------------"]
    :info {:about "Convert a document from Predoc to a man page in mdoc."}})
 
@@ -38,6 +44,10 @@
   (string (string/slice src begin end) append))
 
 (defn run []
+  (when (or (index-of "-v" (dyn :args))
+            (index-of "--version" (dyn :args)))
+    (print version/value)
+    (os/exit 0))
   (def parsed (argy/parse-args "predoc" config))
   (def err (parsed :err))
   (def help (parsed :help))

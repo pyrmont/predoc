@@ -16,6 +16,7 @@ SYNOPSIS
 
 **predoc** [**--format** _fmt_] [**--name** _program_] [**--no-ad**]
            [**--output** _path_] _input_
+**predoc** [**-v** | **--version**]
 
 DESCRIPTION
 ===========
@@ -43,6 +44,9 @@ Options
   Set the path for output. If a value is not provided and _input_ is a file
   path, use the portion of the file name before the file extension. To output
   to stdout, use ``-``.
+
+- **-v**, **--version**:
+  Show the version of **predoc** and exit.
 
 - _input_:
   Set the input path. To read from stdin, use ``-``.
