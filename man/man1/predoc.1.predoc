@@ -14,7 +14,11 @@ NAME
 SYNOPSIS
 ========
 
-**predoc** [**--format** _fmt_] [**--name** _program_] [**--no-ad**]
+**predoc** [**--format** ***mdoc***] [**--name** _program_] [**--no-ad**]
+           [**--output** _path_] _input_
+**predoc** **--format** ***html*** [**--css** _path_] [**--name** _program_]
+           [**--no-ad**] [**--output** _path_] _input_
+**predoc** **--format** ***jdn*** | ***json*** [**--name** _program_]
            [**--output** _path_] _input_
 **predoc** [**-v** | **--version**]
 
@@ -27,6 +31,12 @@ DESCRIPTION
 Options
 -------
 
+- **--css** _path_:
+  Set the path for the stylesheet. If a value is provided, the output is a
+  complete HTML page that links to the stylesheet and the stylesheet is written
+  to _path_, overwriting any existing file. The link is relative to the
+  directory of the output. Only valid with the ``html`` format.
+
 - **--format** _fmt_:
   Set the format to _fmt_ which can be ``html``, ``jdn``, ``json`` or ``mdoc``.
   The default is ``mdoc``.
@@ -37,7 +47,7 @@ Options
   reading from stdin, a value must be provided or will error.
 
 - **--no-ad**:
-  Disable the insertion of the generated-by message at the top of the
+  Disable the insertion of the generated-by message at the top of the html- or
   mdoc-formatted output.
 
 - **--output** _path_:
@@ -69,6 +79,12 @@ Or with values set explicitly:
 
 ````
 $ predoc --name example --output example.1 example.1.predoc
+````
+
+Convert the same document to a complete HTML page together with a stylesheet:
+
+````
+$ predoc --format html --css predoc.css example.1.predoc
 ````
 
 BUGS

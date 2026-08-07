@@ -1,5 +1,7 @@
 (import ../deps/argy-bargy/argy-bargy :as argy)
+(import ./formats/css)
 (import ./predoc :as p)
+(import ./util)
 (import ./version)
 
 (def config
@@ -10,6 +12,14 @@
                               use '-'.`
                        :proxy "path"
                        :req?  true}
+           "--css"    {:help  `The path for the stylesheet. If a value is set,
+                              the output is a complete HTML page that links to
+                              the stylesheet and the stylesheet is written to
+                              this path, overwriting any existing file. Only
+                              valid with the html format.`
+                       :kind  :single
+                       :proxy "path"
+                       :short "c"}
            "--format" {:help    `The format to use for the output. Valid values
                                 are html, jdn, json and mdoc.`
                        :default "mdoc"
@@ -22,7 +32,7 @@
                        :kind  :single
                        :short "n"}
            "--no-ad"  {:help  `Disable insertion of generated-by message at the
-                              top of mdoc-formatted output.`
+                              top of html- and mdoc-formatted output.`
                        :kind  :flag
                        :short "A"}
            "--output" {:help  `The path for the output file. If value is not set
@@ -74,6 +84,10 @@
       (def format (get formats (opts "format")))
       (if (nil? format)
         (error "unrecognised format"))
+      # set stylesheet path
+      (def css-path (opts "css"))
+      (if (and (not (nil? css-path)) (not= :html format))
+        (error "stylesheet only valid with html format"))
       # set input path
       (def i-path (params :input))
       # set intermediate name
@@ -110,6 +124,12 @@
               [(build-str i-path begin end-n) o-path]
               (nil? o-path)
               [name (build-str i-path 0 end-o ext)]))))
+      # set link to stylesheet, relative to the directory of the output
+      (def css-href
+        (unless (nil? css-path)
+          (if (= "-" o-path*)
+            css-path
+            (util/relpath (util/parent (util/abspath o-path*)) css-path))))
       # read input
       (def input (if (= "-" i-path)
                    (file/read stdin :all)
@@ -117,7 +137,10 @@
       # determine render function
       (def render (case format
                     :html
-                    (fn [r] (p/predoc->html name* r :no-ad? no-ad?))
+                    (if (nil? css-path)
+                      (fn [r] (p/predoc->html name* r :no-ad? no-ad?))
+                      (fn [r] (p/predoc->html-page name* r :no-ad? no-ad?
+                                                   :css-path css-href)))
                     :jdn
                     (partial p/predoc->jdn)
                     :json
@@ -132,6 +155,9 @@
       # output document
       (if (= "-" o-path*)
         (print document)
-        (spit o-path* document)))))
+        (spit o-path* document))
+      # output stylesheet
+      (unless (nil? css-path)
+        (spit css-path css/value)))))
 
 (defn main [& _args] (run))

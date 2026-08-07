@@ -12,6 +12,10 @@
   (def ast (predoc->ast predoc))
   (html/render-doc program ast :no-ad? no-ad?))
 
+(defn predoc->html-page [program predoc &named no-ad? css-path]
+  (def ast (predoc->ast predoc))
+  (html/render-page program ast :no-ad? no-ad? :css-path css-path))
+
 (defn predoc->jdn [predoc]
   (->> (predoc->ast predoc)
        (jdn/render-doc)))

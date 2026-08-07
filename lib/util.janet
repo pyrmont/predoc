@@ -37,3 +37,23 @@
     (do
       (put parts 0 (string/replace sep "" (first parts)))
       (string/join (array/slice parts 0 -2) sep))))
+
+(defn relpath
+  [from to]
+  (defn split-path
+    [path]
+    (->> (string/split sep path)
+         (filter (fn [part] (and (not (empty? part)) (not= "." part))))))
+  (def a (split-path (abspath from)))
+  (def b (split-path (abspath to)))
+  (var i 0)
+  (while (and (< i (length a))
+              (< i (length b))
+              (= (get a i) (get b i)))
+    (++ i))
+  (def parts (array/concat @[]
+                           (array/new-filled (- (length a) i) "..")
+                           (array/slice b i)))
+  (if (empty? parts)
+    "."
+    (string/join parts sep)))

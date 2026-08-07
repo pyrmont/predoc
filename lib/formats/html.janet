@@ -438,6 +438,19 @@
     (render-xref b node)
     (error (string (get node :type) " not implemented"))))
 
+(defn- buffer-attr [b s]
+  (def escapes
+    {34 "&quot;" 38 "&amp;" 60 "&lt;" 62 "&gt;"})
+  (var i 0)
+  (while (def ch (get s i))
+    (buffer/push b (get escapes ch ch))
+    (++ i)))
+
+(defn- doc-title [root]
+  (def node (first root))
+  (if (= :frontmatter (get node :type))
+    (get-in node [:value :title])))
+
 (defn- add-note [b]
   (def fmt "%Y-%m-%dT%H:%M:%SZ")
   (buffer-line b `<!--`)
@@ -470,4 +483,29 @@
     (render-fm b fm true))
   (buffer/push b "</div>")
   (reset)
+  (string b))
+
+(defn render-page [program root &named no-ad? css-path]
+  (def title (or (doc-title root) program))
+  (def b @"")
+  (buffer-line b "<!doctype html>")
+  (unless no-ad?
+    (add-note b))
+  (buffer-line b `<html lang="en">`)
+  (buffer-line b "<head>")
+  (buffer-line b `<meta charset="utf-8">`)
+  (buffer-line b `<meta name="viewport" content="width=device-width, initial-scale=1.0">`)
+  (buffer/push b "<title>")
+  (buffer-attr b title)
+  (buffer-line b "</title>")
+  (when css-path
+    (buffer/push b `<link rel="stylesheet" href="`)
+    (buffer-attr b css-path)
+    (buffer-line b `">`))
+  (buffer-line b "</head>")
+  (buffer-line b "<body>")
+  (buffer/push b (render-doc program root :no-ad? true))
+  (ensure-nl b)
+  (buffer-line b "</body>")
+  (buffer-line b "</html>")
   (string b))

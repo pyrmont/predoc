@@ -1,5 +1,7 @@
 (use ../deps/testament)
 
+(import ../lib/formats/css)
+
 ## Helpers
 
 (defn- lines-to-stream [lines]
@@ -88,6 +90,35 @@
   (is (== 0 exit-code))
   (is (== (string output "\n\n") test-out))
   (is (== nil test-err)))
+
+(deftest cli-css-writes-page-and-stylesheet
+  (def input
+    ``
+    NAME
+    ===
+
+    **foobar** - putting the bar in your foo
+    ``)
+  (def [exit-code _test-out test-err]
+    (shell-capture ["./tmp/predoc" "--no-ad" "--name" "foobar" "--format" "html"
+                    "--css" "tmp/predoc.css" "--output" "tmp/foobar.1.html" "-"]
+                   (lines-to-stream input)))
+  (is (== 0 exit-code))
+  (is (== nil test-err))
+  (def page (slurp "tmp/foobar.1.html"))
+  (is (string/has-prefix? "<!doctype html>" page))
+  (is (string/find `<link rel="stylesheet" href="predoc.css">` page))
+  (is (== css/value (slurp "tmp/predoc.css"))))
+
+(deftest cli-css-rejected-for-mdoc
+  (def [exit-code test-out test-err]
+    (shell-capture ["./tmp/predoc" "--name" "foobar" "--css" "tmp/predoc.css"
+                    "--output" "-" "-"]
+                   (lines-to-stream "NAME\n===\n")))
+  (is (== 1 exit-code))
+  (is (== nil test-out))
+  (is (string/has-prefix? "error: stylesheet only valid with html format"
+                          test-err)))
 
 (deftest cli-bad-input
   (def input

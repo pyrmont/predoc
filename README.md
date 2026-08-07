@@ -185,6 +185,19 @@ To specify these values explicitly, you can write:
 $ predoc --name example --output example.1 example.1.predoc
 ```
 
+As well as mdoc, `predoc` can convert a document to HTML. By default, the
+`html` format produces a fragment suitable for embedding in an existing page.
+If you pass `--css`, the output is instead a complete HTML page that links to a
+stylesheet and that stylesheet is written to the given path:
+
+```
+$ predoc --format html --css predoc.css example.1.predoc
+```
+
+This writes the page `example.1.html` and the stylesheet `predoc.css`. The
+stylesheet is overwritten each time, so make a copy under a different name if
+you want to customise it.
+
 More information about `predoc` is, of course, available in `predoc(1)`.
 
 ## Browser Demo
