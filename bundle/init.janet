@@ -3,6 +3,11 @@
 (def- seps {:windows "\\" :mingw "\\" :cygwin "\\"})
 (def- s (get seps (os/which) "/"))
 
+(def- build-dir "_build")
+
+(defn- exe-path [exe]
+  (string build-dir s (get exe :name)))
+
 (defn- build-version [manifest]
   (or (os/getenv "PREDOC_BUILD_VERSION")
       (do
@@ -27,9 +32,10 @@
   (def previous-version (os/getenv "PREDOC_BUILD_VERSION"))
   (defer (os/setenv "PREDOC_BUILD_VERSION" previous-version)
     (os/setenv "PREDOC_BUILD_VERSION" (build-version manifest))
+    (os/mkdir build-dir)
     (each exe exes
       (when (get exe :quickbin?)
-        (declare/quickbin (get exe :entry) (get exe :name))))))
+        (declare/quickbin (get exe :entry) (exe-path exe))))))
 
 (defn install [manifest &]
   (def manpages (get-in manifest [:info :artifacts :manpages] []))
@@ -48,4 +54,4 @@
       (bundle/add manifest path (string (when prefix (string prefix s)) path))))
   (def exes (get-in manifest [:info :artifacts :executables] []))
   (each exe exes
-    (bundle/add-bin manifest (get exe :name))))
+    (bundle/add-bin manifest (exe-path exe) (get exe :name))))
