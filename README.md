@@ -130,7 +130,7 @@ More information about the Predoc language is in `predoc(7)`. You can
 Pre-built binaries of `predoc` are available as tarballs via the
 [Releases][github-releases] section on GitHub for:
 
-- FreeBSD 14 (x86-64 and aarch64)
+- FreeBSD 15 (x86-64 and aarch64)
 - Linux (x86-64 and aarch64)
 - macOS (aarch64)
 

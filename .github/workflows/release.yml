@@ -106,13 +106,13 @@ jobs:
       matrix:
         include:
           - os: freebsd
-            version: "14.0"
-            arch: x86-64
-            target: freebsd14-x86_64
+            version: "15.1"
+            architecture: x86-64
+            target: freebsd15-x86_64
           - os: freebsd
-            version: "14.0"
-            arch: arm64
-            target: freebsd14-aarch64
+            version: "15.1"
+            architecture: arm64
+            target: freebsd15-aarch64
     steps:
     - name: "checkout project"
       uses: actions/checkout@v5
@@ -158,23 +158,25 @@ jobs:
     - name: "extract janet"
       run: tar -xzf ${{ steps.janet-ver.outputs.tag }}.tar.gz --strip-components=1 -C $JANET_SRCPATH
       shell: bash
-    - name: "make janet"
-      uses: cross-platform-actions/action@v0.27.0
+    - name: "start FreeBSD VM"
+      uses: cross-platform-actions/action@v1.3.0
       with:
         environment_variables: "PREFIX JANET_HEADERPATH JANET_BINPATH JANET_LIBPATH JANET_MANPATH JANET_SRCPATH JANET_PATH"
         operating_system: ${{ matrix.os }}
         architecture: ${{ matrix.architecture }}
         version: ${{ matrix.version }}
         shell: bash
-        run: |
-          sudo pkg install -y gmake
-          cd $JANET_SRCPATH && gmake install
-          export PATH="$PREFIX"/bin:"$PATH"
-          cd $GITHUB_WORKSPACE
-          cd .jeep && janet --install .
-          cd $GITHUB_WORKSPACE
-          jeep test -R
-          jeep quickbin lib/cli.janet predoc
+    - name: "build on FreeBSD"
+      shell: cpa.sh {0}
+      run: |
+        sudo pkg install -y gmake
+        cd $JANET_SRCPATH && gmake install
+        export PATH="$PREFIX"/bin:"$PATH"
+        cd $GITHUB_WORKSPACE
+        cd .jeep && janet --install .
+        cd $GITHUB_WORKSPACE
+        jeep test -R
+        jeep quickbin lib/cli.janet predoc
     - name: "copy files"
       run: cp predoc man/man1/predoc.1 man/man7/predoc.7 LICENSE predoc-${{ inputs.version }}
     - name: "make tarball"
