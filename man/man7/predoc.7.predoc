@@ -430,7 +430,7 @@ other block elements.
 When rendered to `mdoc(7)`, a paragraph produces a sequence of text lines and
 input lines. The text lines end on closing delimiters.
 
-Inline Elements
+INLINE ELEMENTS
 ===============
 
 Inline elements are elements that exist within a block element. Some inline
