@@ -187,6 +187,34 @@ $ predoc --name example --output example.1 example.1.predoc
 
 More information about `predoc` is, of course, available in `predoc(1)`.
 
+## Browser Demo
+
+The browser demo in `pages` runs Predoc using a WebAssembly build of Janet.
+Building it requires Janet, Git, and either Docker or Podman. Pass the Janet
+release to embed as the first argument:
+
+```console
+$ janet res/tools/wasm.janet 1.41.2
+```
+
+The script uses Docker by default. To use Podman instead, pass it as the second
+argument:
+
+```console
+$ janet res/tools/wasm.janet 1.41.2 podman
+```
+
+The build fetches the requested Janet release, compiles it using the pinned
+Emscripten image, and updates the content-addressed JavaScript and WebAssembly
+files referenced by the demo. Build intermediates are cached in `_build/wasm`.
+An Emscripten image tag can optionally be supplied as the third argument.
+
+After building, run the Node.js smoke test with the same Janet version:
+
+```console
+$ node res/tools/wasm-smoke.mjs 1.41.2
+```
+
 ## Alternatives
 
 There are alternatives to Predoc. Here are a few:

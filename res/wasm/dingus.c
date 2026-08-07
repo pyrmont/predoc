@@ -1,5 +1,6 @@
 #include <emscripten.h>
 #include "janet.h"
+#include "predoc-image.h"
 
 static JanetTable *env = NULL;
 
@@ -9,18 +10,32 @@ const char *run_janet(char *source) {
     int ret;
 
     if (env == NULL) {
-        // Initialize the virtual machine
-        janet_init();
+        Janet lookup = janet_wrap_nil();
+        Janet predoc;
 
-        // Get the core environment
+        janet_init();
         env = janet_core_env(NULL);
 
-        // Import predoc
-        ret = janet_dostring(env, "(import ./predoc)", "dingus.c", &result);
+        janet_resolve(env, janet_csymbol("load-image-dict"), &lookup);
+        if (!janet_checktype(lookup, JANET_TABLE)) return NULL;
+
+        predoc = janet_unmarshal(
+            predoc_image,
+            predoc_image_len,
+            0,
+            janet_unwrap_table(lookup),
+            NULL);
+        if (!janet_checktype(predoc, JANET_TABLE)) return NULL;
+
+        janet_def(env, "__predoc_image", predoc, NULL);
+        ret = janet_dostring(
+            env,
+            "(merge-module (curenv) __predoc_image \"predoc/\")",
+            "dingus.c",
+            &result);
         if (ret) return NULL;
 
-        // Define convert function
-        char *code =
+        const char *code =
         "(defn convert [name input]\n"
         "  (def nl (string/from-bytes 10))\n"
         "  (def dq (string/from-bytes 34))\n"
