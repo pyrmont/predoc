@@ -12,6 +12,7 @@ body {
 }
 
 div.manpage {
+  font-family: monospace;
   margin: 2rem 0;
 }
 
@@ -40,6 +41,7 @@ div.manpage div.footer {
 
 div.manpage h2.section {
   border-bottom: 0.15rem dotted;
+  margin-top: 2rem;
 }
 
 div.manpage h3.subsection {
@@ -58,6 +60,10 @@ div.manpage p.synopsis span.name {
 
 div.manpage p.synopsis span.rest {
   grid-column: 2;
+}
+
+div.manpage a {
+  color: #a0522d;
 }
 
 div.manpage em {
