@@ -13,7 +13,6 @@ permissions:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
@@ -26,170 +25,46 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             arch: x86_64
+    runs-on: ${{ matrix.os }}
     steps:
-    - name: "checkout project"
-      uses: actions/checkout@v7
-      with:
-        ref: ${{ inputs.version }}
-    - name: "find latest version of janet"
-      uses: oprypin/find-latest-tag@v1
-      with:
-        repository: janet-lang/janet
-        releases-only: true
-        prefix: 'v'
-      id: janet-ver
-    - name: "set prefix"
-      run: echo "PREFIX=$GITHUB_WORKSPACE/.janet" >> $GITHUB_ENV
-      shell: bash
-    - name: "set paths"
-      run: |
-        echo "$PREFIX/bin" >> $GITHUB_PATH
-        echo "JANET_HEADERPATH=$PREFIX/include" >> $GITHUB_ENV
-        echo "JANET_BINPATH=$PREFIX/bin" >> $GITHUB_ENV
-        echo "JANET_LIBPATH=$PREFIX/lib" >> $GITHUB_ENV
-        echo "JANET_MANPATH=$PREFIX/man" >> $GITHUB_ENV
-        echo "JANET_SRCPATH=$PREFIX/src" >> $GITHUB_ENV
-        echo "JANET_PATH=$PREFIX" >> $GITHUB_ENV
-      shell: bash
-    - name: "make directories"
-      run:  |
-        mkdir -p $PREFIX
-        mkdir -p $JANET_HEADERPATH
-        mkdir -p $JANET_BINPATH
-        mkdir -p $JANET_LIBPATH
-        mkdir -p $JANET_MANPATH
-        mkdir -p $JANET_SRCPATH
-        mkdir -p .jeep
-        mkdir -p predoc-${{ inputs.version }}
-      shell: bash
-    - name: "download janet"
-      run: curl -LO https://github.com/janet-lang/janet/archive/refs/tags/${{ steps.janet-ver.outputs.tag }}.tar.gz
-      shell: bash
-    - name: "extract janet"
-      run: tar -xzf ${{ steps.janet-ver.outputs.tag }}.tar.gz --strip-components=1 -C $JANET_SRCPATH
-      shell: bash
-    - name: "make janet"
-      run: cd $JANET_SRCPATH && make install
-      shell: bash
-    - name: "return to workspace directory"
-      run: cd $GITHUB_WORKSPACE
-      shell: bash
-    - name: "download jeep"
-      run: git clone --depth=1 https://github.com/pyrmont/jeep.git .jeep
-      shell: bash
-    - name: "install jeep"
-      run: cd .jeep && janet --install .
-      shell: bash
-    - name: "return to workspace directory"
-      run: cd $GITHUB_WORKSPACE
-      shell: bash
-    - name: "run tests"
-      run: jeep test -R
-      shell: bash
-    - name: "make quickbin"
-      run: jeep quickbin lib/cli.janet predoc
-      shell: bash
-    - name: "copy files"
-      run: cp predoc man/man1/predoc.1 man/man7/predoc.7 LICENSE predoc-${{ inputs.version }}
-    - name: "make tarball"
-      run: tar -czf predoc-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz predoc-${{ inputs.version }}
-      shell: bash
-    - name: "upload artifact"
-      uses: actions/upload-artifact@v7
-      with:
-        name: build-${{ matrix.os }}
-        path: predoc-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
-
-  virtual-build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - os: freebsd
-            version: "15.1"
-            architecture: x86-64
-            target: freebsd15-x86_64
-          - os: freebsd
-            version: "15.1"
-            architecture: arm64
-            target: freebsd15-aarch64
-    steps:
-    - name: "checkout project"
-      uses: actions/checkout@v7
-      with:
-        ref: ${{ inputs.version }}
-    - name: "find latest version of janet"
-      uses: oprypin/find-latest-tag@v1
-      with:
-        repository: janet-lang/janet
-        releases-only: true
-        prefix: 'v'
-      id: janet-ver
-    - name: "set prefix"
-      run: echo "PREFIX=$GITHUB_WORKSPACE/.janet" >> $GITHUB_ENV
-      shell: bash
-    - name: "set paths"
-      run: |
-        echo "$PREFIX/bin" >> $GITHUB_PATH
-        echo "JANET_HEADERPATH=$PREFIX/include" >> $GITHUB_ENV
-        echo "JANET_BINPATH=$PREFIX/bin" >> $GITHUB_ENV
-        echo "JANET_LIBPATH=$PREFIX/lib" >> $GITHUB_ENV
-        echo "JANET_MANPATH=$PREFIX/man" >> $GITHUB_ENV
-        echo "JANET_SRCPATH=$PREFIX/src" >> $GITHUB_ENV
-        echo "JANET_PATH=$PREFIX" >> $GITHUB_ENV
-      shell: bash
-    - name: "make directories"
-      run:  |
-        mkdir -p $PREFIX
-        mkdir -p $JANET_HEADERPATH
-        mkdir -p $JANET_BINPATH
-        mkdir -p $JANET_LIBPATH
-        mkdir -p $JANET_MANPATH
-        mkdir -p $JANET_SRCPATH
-        mkdir -p .jeep
-        mkdir -p predoc-${{ inputs.version }}
-      shell: bash
-    - name: "download janet"
-      run: curl -LO https://github.com/janet-lang/janet/archive/refs/tags/${{ steps.janet-ver.outputs.tag }}.tar.gz
-      shell: bash
-    - name: "download jeep"
-      run: git clone --depth=1 https://github.com/pyrmont/jeep.git .jeep
-      shell: bash
-    - name: "extract janet"
-      run: tar -xzf ${{ steps.janet-ver.outputs.tag }}.tar.gz --strip-components=1 -C $JANET_SRCPATH
-      shell: bash
-    - name: "start FreeBSD VM"
-      uses: cross-platform-actions/action@v1.3.0
-      with:
-        environment_variables: "PREFIX JANET_HEADERPATH JANET_BINPATH JANET_LIBPATH JANET_MANPATH JANET_SRCPATH JANET_PATH"
-        operating_system: ${{ matrix.os }}
-        architecture: ${{ matrix.architecture }}
-        version: ${{ matrix.version }}
-        shell: bash
-    - name: "build on FreeBSD"
-      shell: cpa.sh {0}
-      run: |
-        sudo pkg install -y gmake
-        cd $JANET_SRCPATH && gmake install
-        export PATH="$PREFIX"/bin:"$PATH"
-        cd $GITHUB_WORKSPACE
-        cd .jeep && janet --install .
-        cd $GITHUB_WORKSPACE
-        jeep test -R
-        jeep quickbin lib/cli.janet predoc
-    - name: "copy files"
-      run: cp predoc man/man1/predoc.1 man/man7/predoc.7 LICENSE predoc-${{ inputs.version }}
-    - name: "make tarball"
-      run: tar -czf predoc-${{ inputs.version }}-${{ matrix.target }}.tar.gz predoc-${{ inputs.version }}
-      shell: bash
-    - name: "upload artifact"
-      uses: actions/upload-artifact@v7
-      with:
-        name: build-${{ matrix.target }}
-        path: predoc-${{ inputs.version }}-${{ matrix.target }}.tar.gz
+      - name: Check out Predoc
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.version }}
+          path: predoc
+      - name: Check out Wattle
+        uses: actions/checkout@v7
+        with:
+          repository: pyrmont/wattle
+          path: wattle
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+      - name: Build Wattle
+        run: zig build
+        working-directory: wattle
+      - name: Run Wattle tests
+        run: ../wattle/zig-out/bin/wattle test
+        working-directory: predoc
+      - name: Build Predoc
+        run: ../wattle/zig-out/bin/wattle -p ../wattle/zig-out build exe --release fast
+        working-directory: predoc
+      - name: Package Predoc
+        run: |
+          package="predoc-${{ inputs.version }}"
+          mkdir "$package"
+          cp zig-out/bin/predoc man/man1/predoc.1 man/man7/predoc.7 LICENSE "$package/"
+          tar -czf "${package}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz" "$package"
+        working-directory: predoc
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-${{ matrix.platform }}-${{ matrix.arch }}
+          path: predoc/predoc-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
 
   release:
-    needs: [build, virtual-build]
+    needs: build
     runs-on: ubuntu-latest
     steps:
     - name: "download artifacts"

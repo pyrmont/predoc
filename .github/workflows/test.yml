@@ -2,51 +2,44 @@ name: test
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
+
+permissions:
+  contents: read
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-    - name: "checkout project"
-      uses: actions/checkout@v7
-      with:
-        submodules: true
-    - name: "find latest version of janet"
-      uses: oprypin/find-latest-tag@v1
-      with:
-        repository: janet-lang/janet
-        releases-only: true
-        prefix: 'v'
-      id: janet-ver
-    - name: "set prefix"
-      run: echo "PREFIX=$GITHUB_WORKSPACE/.janet" >> $GITHUB_ENV
-      shell: bash
-    - name: "set paths"
-      run: |
-        echo "$PREFIX/bin" >> $GITHUB_PATH
-        echo "JANET_HEADERPATH=$PREFIX/include" >> $GITHUB_ENV
-        echo "JANET_BINPATH=$PREFIX/bin" >> $GITHUB_ENV
-        echo "JANET_LIBPATH=$PREFIX/lib" >> $GITHUB_ENV
-        echo "JANET_MANPATH=$PREFIX/man" >> $GITHUB_ENV
-        echo "JANET_PATH=$PREFIX" >> $GITHUB_ENV
-      shell: bash
-    - name: "make directories"
-      run: mkdir -p $PREFIX
-      shell: bash
-    - name: "download janet"
-      run: curl -LO https://github.com/janet-lang/janet/releases/download/${{ steps.janet-ver.outputs.tag }}/janet-${{ steps.janet-ver.outputs.tag }}-linux-x64.tar.gz
-      shell: bash
-    - name: "extract janet"
-      run: tar -xzf janet-${{ steps.janet-ver.outputs.tag }}-linux-x64.tar.gz --strip-components=2 -C $PREFIX
-      shell: bash
-    - name: "return to workspace directory"
-      run: cd $GITHUB_WORKSPACE
-      shell: bash
-    - name: "run tests"
-      run: 'for f in test/*.janet; do janet "$f" || { rc=$?; break; }; done; (exit ${rc:-0})'
-      shell: bash
+      - name: Check out Predoc
+        uses: actions/checkout@v7
+        with:
+          path: predoc
+      - name: Check out Wattle
+        uses: actions/checkout@v7
+        with:
+          repository: pyrmont/wattle
+          path: wattle
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+      - name: Build Wattle
+        run: zig build
+        working-directory: wattle
+      - name: Build Predoc
+        run: ../wattle/zig-out/bin/wattle -p ../wattle/zig-out build exe
+        working-directory: predoc
+      - name: Run Wattle tests
+        run: ../wattle/zig-out/bin/wattle test
+        working-directory: predoc
+      - name: Check CLI
+        run: |
+          zig-out/bin/predoc --help
+          zig-out/bin/predoc --no-ad --output - man/man1/predoc.1.predoc
+        working-directory: predoc

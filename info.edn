@@ -1,0 +1,9 @@
+{:name "predoc"
+ :version "DEVEL"
+ :description "A tool in Wattle to convert man pages from Predoc to mdoc"
+ :author "Michael Camilleri"
+ :license "MIT"
+ :url "https://github.com/pyrmont/predoc"
+ :artifacts [{:type :exe
+              :name "predoc"
+              :entry "lib/cli.wattle"}]}

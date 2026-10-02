@@ -18,7 +18,7 @@ SYNOPSIS
            [**--output** _path_] _input_
 **predoc** **--format** ***html*** [**--css** _path_] [**--name** _program_]
            [**--no-ad**] [**--output** _path_] _input_
-**predoc** **--format** ***jdn*** | ***json*** [**--name** _program_]
+**predoc** **--format** ***edn*** | ***json*** [**--name** _program_]
            [**--output** _path_] _input_
 **predoc** [**-v** | **--version**]
 
@@ -38,7 +38,7 @@ Options
   directory of the output. Only valid with the ``html`` format.
 
 - **--format** _fmt_:
-  Set the format to _fmt_ which can be ``html``, ``jdn``, ``json`` or ``mdoc``.
+  Set the format to _fmt_ which can be ``edn``, ``html``, ``json`` or ``mdoc``.
   The default is ``mdoc``.
 
 - **--name** _program_:

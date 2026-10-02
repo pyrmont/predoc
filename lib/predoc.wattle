@@ -1,0 +1,29 @@
+(import ./parser :as p)
+(import ./formats/html)
+(import ./formats/edn)
+(import ./formats/json)
+(import ./formats/mdoc)
+
+(defn predoc->ast [predoc]
+  (def root (-?> (peg/match p/grammar predoc) first))
+  (or root (error "could not parse input")))
+
+(defn predoc->html [program predoc & {:keys [no-ad?]}]
+  (def ast (predoc->ast predoc))
+  (html/render-doc program ast :no-ad? no-ad?))
+
+(defn predoc->html-page [program predoc & {:keys [no-ad? css-path]}]
+  (def ast (predoc->ast predoc))
+  (html/render-page program ast :no-ad? no-ad? :css-path css-path))
+
+(defn predoc->edn [predoc]
+  (->> (predoc->ast predoc)
+       (edn/render-doc)))
+
+(defn predoc->json [predoc]
+  (->> (predoc->ast predoc)
+       (json/render-doc)))
+
+(defn predoc->mdoc [program predoc & {:keys [no-ad?]}]
+  (def ast (predoc->ast predoc))
+  (mdoc/render-doc program ast :no-ad? no-ad?))

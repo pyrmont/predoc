@@ -10,11 +10,11 @@ Predoc is a Markdown flavour specifically designed for writing man pages.
 > gaps in its implementation.
 
 This is the repository for the reference implementation of the parser and
-renderer written in the [Janet programming language][janet-hp]. It includes a
+renderer written in the [Wattle programming language][wattle-hp]. It includes a
 command-line utility, `predoc`, which converts a Predoc document into a man
 page written in mdoc.
 
-[janet-hp]: https://janet-lang.org
+[wattle-hp]: https://github.com/pyrmont/wattle
 
 You can try out Predoc in your browser on the [project homepage][ph].
 
@@ -130,7 +130,6 @@ More information about the Predoc language is in `predoc(7)`. You can
 Pre-built binaries of `predoc` are available as tarballs via the
 [Releases][github-releases] section on GitHub for:
 
-- FreeBSD 15 (x86-64 and aarch64)
 - Linux (x86-64 and aarch64)
 - macOS (aarch64)
 
@@ -144,16 +143,26 @@ $ cd predoc-<version>
 
 #### From Source
 
-To build the `predoc` binary from source, you need [Janet][janet-hp] installed
-on your system. Then you can run:
+To build the `predoc` binary from source, you need [Zig][zig] 0.16.0 and
+[Wattle][wattle-hp] installed on your system, including its `share/wattle`
+package (for example, by running `zig build -p ~/.local` in a Wattle checkout).
+The build is declared in `info.edn`, so no `build.zig` is needed. Then you can
+run:
+
+[zig]: https://ziglang.org
 
 ```console
 $ git clone https://github.com/pyrmont/predoc
 $ cd predoc
 $ git tag --sort=creatordate
 $ git checkout <version>
-$ janet -e '(import ./bundle) (bundle/build (table :info (-> (slurp "info.jdn") parse)))'
+$ wattle build exe --release fast
 ```
+
+The executable is `zig-out/bin/predoc`. It includes the Wattle runtime and does
+not require a separate Wattle installation to run.
+
+To run the tests, use `wattle test` from the root of the project.
 
 ### Installing
 
@@ -162,7 +171,7 @@ the appropriate man page locations. For example:
 
 ```console
 # use sudo or doas depending on the permissions of the target directories
-$ sudo cp predoc /usr/local/bin/
+$ sudo cp zig-out/bin/predoc /usr/local/bin/
 $ sudo cp predoc.1 /usr/local/share/man/man1/
 $ sudo cp predoc.7 /usr/local/share/man/man7/
 ```
@@ -202,31 +211,10 @@ More information about `predoc` is, of course, available in `predoc(1)`.
 
 ## Browser Demo
 
-The browser demo in `pages` runs Predoc using a WebAssembly build of Janet.
-Building it requires Janet, Git, and either Docker or Podman. Pass the Janet
-release to embed as the first argument:
-
-```console
-$ janet res/tools/wasm.janet 1.41.2
-```
-
-The script uses Docker by default. To use Podman instead, pass it as the second
-argument:
-
-```console
-$ janet res/tools/wasm.janet 1.41.2 podman
-```
-
-The build fetches the requested Janet release, compiles it using the pinned
-Emscripten image, and updates the content-addressed JavaScript and WebAssembly
-files referenced by the demo. Build intermediates are cached in `_build/wasm`.
-An Emscripten image tag can optionally be supplied as the third argument.
-
-After building, run the Node.js smoke test with the same Janet version:
-
-```console
-$ node res/tools/wasm-smoke.mjs 1.41.2
-```
+The browser demo in `pages` runs the original Janet implementation of Predoc,
+compiled to WebAssembly. It has not been ported to Wattle. The scripts in
+`res/tools` that build it need the Janet sources, which have been removed, so
+the demo can't currently be rebuilt. The last build still works.
 
 ## Alternatives
 

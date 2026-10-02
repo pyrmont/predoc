@@ -1,0 +1,842 @@
+; A testing framework library
+
+(def- default-result-hook (fn [_]))
+
+; The number of tests, assertions and passes recorded since the last reset,
+; the test that is running, and the registered tests in registration order,
+; which `run-order` replaces with the order of a run.
+(var- num-tests-run 0)
+(var- num-asserts 0)
+(var- num-tests-passed 0)
+(var- curr-test nil)
+(var- tests !{})
+(var- test-names ![])
+(var- run-order nil)
+(var- reports !{})
+(var- print-reports-fn nil)
+(var- print-results-fn nil)
+(var- on-result-hook default-result-hook)
+
+;;; Equivalence
+
+(def- kind
+  {:vector :list
+   :tuple :list
+   :array :list
+   :map :dictionary
+   :table :dictionary
+   :string :bytes
+   :buffer :bytes
+   :number :number})
+
+(defn- types-equivalent? [tx ty]
+  (or (= tx ty)
+      (and (not (nil? (get kind tx)))
+           (= (get kind tx) (get kind ty)))))
+
+(defn- equivalent? [x y]
+  (def tx (type x))
+  (and (types-equivalent? tx (type y))
+       (case (get kind tx)
+         :list (do
+                 (var same? (= (length x) (length y)))
+                 (var i 0)
+                 (while (and same? (< i (length x)))
+                   (set same? (equivalent? (get x i) (get y i)))
+                   (++ i))
+                 same?)
+         :dictionary (do
+                       (var same? (= (length (keys x)) (length (keys y))))
+                       (each k (keys x)
+                         (when same?
+                           (set same? (equivalent? (get x k) (get y k)))))
+                       same?)
+         :bytes (= (string x) (string y))
+         :number (if (nan? x) (nan? y) (= x y))
+         (= x y))))
+
+(defn ==
+  """
+  Checks whether x and y are equivalent. Two values are equivalent if their
+  types are the same or differ only in mutability, as with an array and a
+  vector, and their elements are equivalent. NaN is equivalent to NaN.
+  """
+  [x y]
+  (equivalent? x y))
+
+;;; Reporting
+
+(defn set-report-printer
+  """
+  Sets the function that prints the report at the end of ^run-tests!. The
+  function f is called with the number of tests run, the number of assertions
+  and the number of tests passed. A default printer is used if none is set.
+  ^run-tests! does not call the printer when it is called with `:silent?` set
+  to `true`. Raises if f is not a function.
+  """
+  [f]
+  (if (function? f)
+    (set print-reports-fn f)
+    (error "argument not of type :function")))
+
+(defn set-results-printer
+  """
+  Sets the function that prints the results of the tests. The function f is
+  called with the test reports, a table. A default printer is used if none is
+  set. Raises if f is not a function.
+  """
+  [f]
+  (if (function? f)
+    (set print-results-fn f)
+    (error "argument not of type :function")))
+
+(defn- colour [c text]
+  (def colours {:green "\e[32m" :red "\e[31m"})
+  (if (dyn :test/color?)
+    (string (get colours c "\e[0m") text "\e[0m")
+    text))
+
+;;; Diffs
+
+; Returns [common-prefix s1-remainder s2-remainder].
+(defn- strip-common-prefix [s1 s2]
+  (def len (min (length s1) (length s2)))
+  (var i 0)
+  (while (and (< i len) (= (get s1 i) (get s2 i)))
+    (++ i))
+  [(string/slice s1 0 i) (string/slice s1 i) (string/slice s2 i)])
+
+; Returns [s1-remainder s2-remainder common-suffix].
+(defn- strip-common-suffix [s1 s2]
+  (def len1 (length s1))
+  (def len2 (length s2))
+  (def len (min len1 len2))
+  (var i 0)
+  (while (and (< i len) (= (get s1 (- len1 1 i)) (get s2 (- len2 1 i))))
+    (++ i))
+  (if (zero? i)
+    [s1 s2 ""]
+    [(string/slice s1 0 (- len1 i))
+     (string/slice s2 0 (- len2 i))
+     (string/slice s1 (- len1 i))]))
+
+; Merges consecutive segments of the same type.
+(defn- merge-consecutives [segments]
+  (var i 1)
+  (while (get segments i)
+    (def nxt (get segments i))
+    (def cur (get segments (- i 1)))
+    (if (= (get cur :type) (get nxt :type))
+      (do
+        (put! cur :text (string (get cur :text) (get nxt :text)))
+        (array/remove! segments i))
+      (++ i)))
+  segments)
+
+; Merges isolated equal segments, the islands, for readability.
+(defn- merge-islands [segments]
+  (var i 2)
+  (while (get segments i)
+    (def nxt (get segments i))
+    (def prv (get segments (- i 2)))
+    (def cur (get segments (- i 1)))
+    (cond
+      ; Skip: nothing to merge.
+      (or (= :equal (get prv :type))
+          (= :equal (get nxt :type))
+          (not= :equal (get cur :type))
+          (string/find " " (get cur :text)))
+      (set i (+ i 1))
+      ; The neighbours differ: the island joins both.
+      (not= (get prv :type) (get nxt :type))
+      (do
+        (put! prv :text (string (get prv :text) (get cur :text)))
+        (put! nxt :text (string (get cur :text) (get nxt :text)))
+        (array/remove! segments (- i 1))
+        (set i (+ i 1)))
+      ; The neighbours have the same type.
+      (if-let [nxt-nxt (get segments (+ i 1))]
+        (if (and (not= :equal (get nxt-nxt :type))
+                 (not= (get nxt :type) (get nxt-nxt :type)))
+          ; The segment after nxt is a change of the other type: the island
+          ; is copied in front of both.
+          (do
+            (put! nxt :text (string (get cur :text) (get nxt :text)))
+            (put! nxt-nxt :text (string (get cur :text) (get nxt-nxt :text)))
+            (array/remove! segments (- i 1))
+            (set i (+ i 1)))
+          ; prv, cur and nxt merge into prv.
+          (do
+            (put! prv :text (string (get prv :text) (get cur :text) (get nxt :text)))
+            (array/remove! segments (- i 1))
+            (array/remove! segments (- i 1))))
+        (do
+          (put! prv :text (string (get prv :text) (get cur :text) (get nxt :text)))
+          (array/remove! segments (- i 1))
+          (array/remove! segments (- i 1))))))
+  (merge-consecutives segments))
+
+; Returns the last row of the longest-common-subsequence table in linear space.
+(defn- lcs-lengths [s1 s2]
+  (def m (length s1))
+  (def n (length s2))
+  (var prv (array/new-filled (+ n 1) 0))
+  (var cur (array/new-filled (+ n 1) 0))
+  (loop [i :range [1 (+ m 1)]]
+    (loop [j :range [1 (+ n 1)]]
+      (if (= (get s1 (- i 1)) (get s2 (- j 1)))
+        (put! cur j (+ (get prv (- j 1)) 1))
+        (put! cur j (max (get prv j) (get cur (- j 1))))))
+    (def tmp prv)
+    (set prv cur)
+    (set cur tmp)
+    (array/fill! cur 0))
+  prv)
+
+; Returns the diff of s1 and s2 as segments, using Hirschberg's algorithm.
+(defn- hirschberg-diff [s1 s2]
+  (def m (length s1))
+  (def n (length s2))
+  (cond
+    (zero? m)
+    (if (zero? n)
+      ![]
+      ![!{:type :insert :text s2}])
+    (zero? n)
+    ![!{:type :delete :text s1}]
+    (= m 1)
+    (do
+      (def c (get s1 0))
+      (var found nil)
+      (var i 0)
+      (while (and (< i n) (nil? found))
+        (when (= c (get s2 i))
+          (set found i))
+        (++ i))
+      (if found
+        (let [result ![]]
+          (unless (zero? found)
+            (array/push! result !{:type :insert :text (string/slice s2 0 found)}))
+          (array/push! result !{:type :equal :text (string/from-bytes c)})
+          (unless (= found (- n 1))
+            (array/push! result !{:type :insert :text (string/slice s2 (+ found 1))}))
+          result)
+        ![!{:type :delete :text s1}
+          !{:type :insert :text s2}]))
+    (let [mid (math/floor (/ m 2))
+          s1-left (string/slice s1 0 mid)
+          s1-right (string/slice s1 mid)
+          left-lens (lcs-lengths s1-left s2)
+          right-lens (lcs-lengths (string/reverse s1-right)
+                                  (string/reverse s2))
+          split-point (do
+                        (var best-j 0)
+                        (var best-len (+ (get left-lens 0)
+                                         (get right-lens n)))
+                        (loop [j :range [1 (+ n 1)]]
+                          (def total (+ (get left-lens j)
+                                        (get right-lens (- n j))))
+                          (when (> total best-len)
+                            (set best-len total)
+                            (set best-j j)))
+                        best-j)
+          s2-left (string/slice s2 0 split-point)
+          s2-right (string/slice s2 split-point)
+          left-diff (hirschberg-diff s1-left s2-left)
+          right-diff (hirschberg-diff s1-right s2-right)]
+      (merge-consecutives (array/concat! left-diff right-diff)))))
+
+; Returns the byte-level diff of s1 and s2. The common prefix and suffix are
+; removed before the diff is computed.
+(defn- compute-diff [s1 s2]
+  (def [prefix s1-mid s2-mid] (strip-common-prefix s1 s2))
+  (def [s1-core s2-core suffix] (strip-common-suffix s1-mid s2-mid))
+  (def diff-core
+    (if (and (empty? s1-core) (empty? s2-core))
+      ![]
+      (hirschberg-diff s1-core s2-core)))
+  (def result ![])
+  (unless (empty? prefix)
+    (array/push! result !{:type :equal :text prefix}))
+  (array/concat! result diff-core)
+  (unless (empty? suffix)
+    (array/push! result !{:type :equal :text suffix}))
+  (merge-islands result))
+
+; Renders the segments of a diff as one line, highlighting the segments of
+; the type show-type.
+(defn- render-diff-line [diff-data show-type]
+  (def parts ![])
+  (each segment diff-data
+    (case (get segment :type)
+      :equal
+      (array/push! parts (get segment :text))
+      :delete
+      (when (= show-type :delete)
+        (array/push! parts (string "\e[48;5;52m" (get segment :text) "\e[0m")))
+      :insert
+      (when (= show-type :insert)
+        (array/push! parts (string "\e[48;5;22m" (get segment :text) "\e[0m")))))
+  (string/join parts))
+
+(defn- format-with-diff [expect-str actual-str]
+  (def diff (compute-diff expect-str actual-str))
+  (string "Expect (L): " (render-diff-line diff :delete) "\n"
+          "Actual (R): " (render-diff-line diff :insert)))
+
+;;; Printing
+
+(defn- ruler
+  ([lines] (ruler lines "="))
+  ([lines sym]
+   (def len (apply max (map length (string/split "\n" lines))))
+   (print (string/repeat sym len))))
+
+(defn- skipped-count []
+  (var n 0)
+  (each report (values reports)
+    (when (get report :skipped?)
+      (++ n)))
+  n)
+
+(defn- stats []
+  (def num-tests-skipped (skipped-count))
+  (string num-tests-run " tests run containing "
+          num-asserts " assertions\n"
+          num-tests-passed " tests passed, "
+          (- num-tests-run num-tests-passed) " tests failed"
+          (if (pos? num-tests-skipped)
+            (string ", " num-tests-skipped " tests skipped")
+            "")))
+
+(defn- failure-message [result]
+  (case (get result :kind)
+    :equal
+    (let [expect-str (string/format "%q" (get result :expect))
+          actual-str (string/format "%q" (get result :actual))]
+      (if (dyn :test/color?)
+        (format-with-diff expect-str actual-str)
+        (string "Expect (L): " expect-str "\n"
+                "Actual (R): " actual-str)))
+    :matches
+    (string "Expect (L): Structure " (string/format "%q" (get result :expect)) "\n"
+            "Actual (R): " (string/format "%q" (get result :actual)))
+    :thrown
+    "Reason: No error thrown"
+    :thrown-message
+    (string "Expect (L): Error message " (string/format "%q" (get result :expect)) "\n"
+            "Actual (R): Error message " (string/format "%q" (get result :actual)))
+    :expr
+    "Reason: Result is Boolean false"))
+
+; Returns the reports in the order the tests were registered, followed by any
+; that belong to a test that is not registered.
+(defn- ordered-reports [test-reports]
+  (def out ![])
+  (each name (or run-order test-names)
+    (when-let [report (get test-reports name)]
+      (array/push! out report)))
+  (each report (values test-reports)
+    (unless (has-value? (or run-order test-names) (get report :test))
+      (array/push! out report)))
+  out)
+
+(defn- default-print-results [test-reports]
+  (def s (stats))
+  (each report (ordered-reports test-reports)
+    (unless (empty? (get report :failures))
+      (unless (= :wattle (dyn :test/runner))
+        (ruler s "-"))
+      (print "> " (colour :red "Failed") ": " (get report :test))
+      (each failure (get report :failures)
+        (print "Assertion: " (get failure :note))
+        (print (failure-message failure))))))
+
+(defn- print-results []
+  ((or print-results-fn default-print-results) reports))
+
+(defn- default-print-reports [_ _ _]
+  (if (= :wattle (dyn :test/runner))
+    (do
+      (print-results)
+      (print "wattle-test-result: " num-tests-run " " num-asserts " "
+             num-tests-passed " " (skipped-count)))
+    (do
+      (def s (stats))
+      (print-results)
+      (ruler s)
+      (print s)
+      (ruler s))))
+
+(defn- print-reports []
+  ((or print-reports-fn default-print-reports)
+   num-tests-run num-asserts num-tests-passed))
+
+;;; Recording
+
+(defn set-on-result-hook
+  """
+  Sets the function that is called when an assertion result is available. The
+  function f is called with one argument, a map with these keys:
+
+  - `:test` is the name of the test the assertion belongs to, or nil.
+  - `:kind` is the kind of assertion, a keyword.
+  - `:passed?` is true if the assertion succeeded.
+  - `:expect` is the expected value. For `:expr` and `:thrown` it is `true`.
+    For `:matches` it is the structure. For `:thrown-message` it is the
+    expected error.
+  - `:actual` is the actual value.
+  - `:note` is a description of the assertion, a string.
+
+  Raises if f is not a function.
+  """
+  [f]
+  (if (function? f)
+    (set on-result-hook f)
+    (error "argument not of type :function")))
+
+(defn- add-to-report [result]
+  (if-let [name (get result :test)
+           report (get reports name)
+           queue (if (get result :passed?)
+                   (get report :passes)
+                   (get report :failures))]
+    (array/push! queue result)))
+
+(defn- compose-and-record-result [result]
+  (++ num-asserts)
+  (on-result-hook result)
+  (add-to-report result)
+  result)
+
+;;; Test registration
+
+(defn- register-test [name t metadata]
+  (if (get tests name)
+    (eprint "[test] registered multiple tests with the same name")
+    (array/push! test-names name))
+  (def entry !{:test t})
+  (each [k v] (pairs metadata)
+    (put! entry k v))
+  (put! tests name entry))
+
+(defn- setup-test [name]
+  (set curr-test name)
+  (put! reports name !{:test name :passes ![] :failures ![]}))
+
+(defn- teardown-test [name]
+  (++ num-tests-run)
+  (when (zero? (length (get (get reports name) :failures)))
+    (++ num-tests-passed))
+  (set curr-test nil))
+
+(defn- run-test-entry [name test-entry]
+  (if (and (get test-entry :skip-when) ((get test-entry :skip-when)))
+    (put! reports name !{:test name
+                         :passes ![]
+                         :failures ![]
+                         :skipped? true})
+    ((get test-entry :test))))
+
+; Returns the kind of assertion that a form is.
+(defn- which [assertion]
+  (def n (if (tuple? assertion) (length assertion) 0))
+  (def head (if (tuple? assertion) (first assertion)))
+  (cond
+    (and (= 3 n) (= '= head)) :equal
+    (and (= 3 n) (= 'deep= head)) :deep-equal
+    (and (= 3 n) (= '== head)) :equivalent
+    (and (= 3 n) (= 'matches head)) :matches
+    (and (= 2 n) (= 'thrown? head)) :thrown
+    (and (= 3 n) (= 'thrown? head)) :thrown-message
+    :expr))
+
+;;; Assertion functions
+
+(defn- assert-expr* [expr form note]
+  (def passed? (not (not expr)))
+  (compose-and-record-result
+    {:test curr-test
+     :kind :expr
+     :passed? passed?
+     :expect true
+     :actual passed?
+     :note (or note (string/format "%q" form))}))
+
+(defn- assert-equal* [expect expect-form actual actual-form note]
+  (compose-and-record-result
+    {:test curr-test
+     :kind :equal
+     :passed? (= expect actual)
+     :expect expect
+     :actual actual
+     :note (or note (string/format "(= %q %q)" expect-form actual-form))}))
+
+(defn- assert-deep-equal* [expect expect-form actual actual-form note]
+  (compose-and-record-result
+    {:test curr-test
+     :kind :equal
+     :passed? (deep= expect actual)
+     :expect expect
+     :actual actual
+     :note (or note (string/format "(deep= %q %q)" expect-form actual-form))}))
+
+(defn- assert-equivalent* [expect expect-form actual actual-form note]
+  (compose-and-record-result
+    {:test curr-test
+     :kind :equal
+     :passed? (== expect actual)
+     :expect expect
+     :actual actual
+     :note (or note (string/format "(== %q %q)" expect-form actual-form))}))
+
+; The value is quoted so that a vector or tuple is matched as data and not
+; compiled as a call.
+(defn- assert-matches* [structure actual actual-form note]
+  (def matched? (not (nil? (eval (tuple 'match (tuple 'quote actual) structure true)))))
+  (compose-and-record-result
+    {:test curr-test
+     :kind :matches
+     :passed? matched?
+     :expect structure
+     :actual actual
+     :note (or note (string/format "(matches %q %q)" structure actual-form))}))
+
+(defn- assert-thrown* [thrown? form note]
+  (compose-and-record-result
+    {:test curr-test
+     :kind :thrown
+     :passed? thrown?
+     :expect true
+     :actual thrown?
+     :note (or note (string/format "thrown? %q" form))}))
+
+(defn- assert-thrown-message* [thrown? form expect-message expect-form actual-message note]
+  (compose-and-record-result
+    {:test curr-test
+     :kind :thrown-message
+     :passed? thrown?
+     :expect expect-message
+     :actual actual-message
+     :note (or note (string/format "thrown? %q %q" expect-form form))}))
+
+;;; Assertion forms
+
+(defn- thrown-form [form note]
+  (def errsym (keyword (gensym)))
+  `(~assert-thrown* (= ~errsym (try ~form ([_] ~errsym))) '~form ~note))
+
+(defn- thrown-message-form [expect form note]
+  (def errsym (keyword (gensym)))
+  (def sentinel (gensym))
+  (def actual (gensym))
+  (def err (gensym))
+  `(let [[~sentinel ~actual] (try (do ~form [nil nil]) ([~err] [~errsym ~err]))]
+     (~assert-thrown-message*
+       (and (= ~sentinel ~errsym) (= ~expect ~actual))
+       '~form ~expect '~expect ~actual ~note)))
+
+(defn- is-form [assertion note]
+  (case (which assertion)
+    :equal
+    (let [[_ expect actual] assertion]
+      `(~assert-equal* ~expect '~expect ~actual '~actual ~note))
+    :deep-equal
+    (let [[_ expect actual] assertion]
+      `(~assert-deep-equal* ~expect '~expect ~actual '~actual ~note))
+    :equivalent
+    (let [[_ expect actual] assertion]
+      `(~assert-equivalent* ~expect '~expect ~actual '~actual ~note))
+    :matches
+    (let [[_ structure actual] assertion]
+      `(~assert-matches* '~structure ~actual '~actual ~note))
+    :thrown
+    (let [[_ form] assertion]
+      (thrown-form form note))
+    :thrown-message
+    (let [[_ expect form] assertion]
+      (thrown-message-form expect form note))
+    :expr
+    `(~assert-expr* ~assertion '~assertion ~note)))
+
+(defmacro assert-expr
+  """
+  Asserts that expr is true. The optional note identifies the assertion in a
+  failure result. It is the form of expr by default.
+  """
+  ([expr] `(~assert-expr* ~expr '~expr nil))
+  ([expr note] `(~assert-expr* ~expr '~expr ~note)))
+
+(defmacro assert-equal
+  """
+  Asserts that expect is equal to actual. The optional note identifies the
+  assertion in a failure result. It is the form `(= expect actual)` by
+  default.
+  """
+  ([expect actual] `(~assert-equal* ~expect '~expect ~actual '~actual nil))
+  ([expect actual note] `(~assert-equal* ~expect '~expect ~actual '~actual ~note)))
+
+(defmacro assert-deep-equal
+  """
+  Asserts that expect is deeply equal to actual. The optional note identifies
+  the assertion in a failure result. It is the form `(deep= expect actual)` by
+  default.
+  """
+  ([expect actual] `(~assert-deep-equal* ~expect '~expect ~actual '~actual nil))
+  ([expect actual note] `(~assert-deep-equal* ~expect '~expect ~actual '~actual ~note)))
+
+(defmacro assert-equivalent
+  """
+  Asserts that expect is equivalent to actual, as ^== defines. The optional
+  note identifies the assertion in a failure result. It is the form
+  `(== expect actual)` by default.
+  """
+  ([expect actual] `(~assert-equivalent* ~expect '~expect ~actual '~actual nil))
+  ([expect actual note] `(~assert-equivalent* ~expect '~expect ~actual '~actual ~note)))
+
+(defmacro assert-matches
+  """
+  Asserts that actual matches structure, a pattern for ^match. The optional
+  note identifies the assertion in a failure result. It is the form
+  `(matches structure actual)` by default.
+  """
+  ([structure actual] `(~assert-matches* '~structure ~actual '~actual nil))
+  ([structure actual note] `(~assert-matches* '~structure ~actual '~actual ~note)))
+
+(defmacro assert-thrown
+  """
+  Asserts that expr raises an error. The optional note identifies the
+  assertion in a failure result. It is the form `thrown? expr` by default.
+  """
+  ([expr] (thrown-form expr nil))
+  ([expr note] (thrown-form expr note)))
+
+(defmacro assert-thrown-message
+  """
+  Asserts that expr raises an error whose message is expect. The optional
+  note identifies the assertion in a failure result. It is the form
+  `thrown? expect expr` by default.
+  """
+  ([expect expr] (thrown-message-form expect expr nil))
+  ([expect expr note] (thrown-message-form expect expr note)))
+
+(defmacro is
+  """
+  Asserts that assertion is true. The form of assertion selects the kind of
+  assertion:
+
+  1. `(= expect actual)` asserts equality.
+  2. `(deep= expect actual)` asserts deep equality.
+  3. `(== expect actual)` asserts equivalence, as ^== defines.
+  4. `(matches structure actual)` asserts that actual matches structure, a
+     pattern for ^match.
+  5. `(thrown? expr)` asserts that expr raises an error.
+  6. `(thrown? expect expr)` asserts that expr raises an error whose message
+     is expect.
+  7. Any other form asserts that its value is truthy.
+
+  The optional note identifies the assertion in a failure result.
+  """
+  ([assertion] (is-form assertion nil))
+  ([assertion note] (is-form assertion note)))
+
+(defmacro each-is
+  """
+  Asserts each form in assertions as ^is does, with the optional note.
+  """
+  ([assertions] `(do ~|(map #(is-form $ nil) assertions) nil))
+  ([assertions note] `(do ~|(map #(is-form $ note) assertions) nil)))
+
+;;; Resets
+
+(defn- empty-module-cache! []
+  (each key (keys module/cache)
+    (put! module/cache key nil)))
+
+(defn reset-tests!
+  """
+  Resets the registered tests and the counts and reports of a run.
+  """
+  []
+  (set num-tests-run 0)
+  (set num-asserts 0)
+  (set num-tests-passed 0)
+  (set curr-test nil)
+  (set tests !{})
+  (set test-names ![])
+  (set run-order nil)
+  (set reports !{})
+  nil)
+
+(defn reset-all!
+  """
+  Resets everything ^reset-tests! resets, the printers and the result hook.
+  """
+  []
+  (reset-tests!)
+  (set print-reports-fn nil)
+  (set print-results-fn nil)
+  (set on-result-hook default-result-hook)
+  nil)
+
+;;; Test definition
+
+(defmacro deftest
+  """
+  Defines a test and registers it in the test suite. If the first argument is
+  a symbol, it is the name of the test. Otherwise the test is given a
+  generated name. Registering a second test with a name in use prints a
+  warning. Raises if there are no arguments or the only argument is a symbol.
+
+  A map that is followed by at least one form and comes first in the body is
+  metadata. A sole map is a body of one expression. Metadata is retained in
+  the test suite and is attached to the binding of a named test. The value of
+  `:skip-when` is compiled into a function of no arguments in the lexical
+  environment of the test. ^run-tests! omits the test if that function returns
+  a truthy value. Calling the test directly does not evaluate `:skip-when`.
+
+  The test is a function that takes the options `:silent?`. It prints the
+  results of the test unless `:silent?` is truthy, and then resets the test
+  suite. The test is also registered in the test suite, and ^run-tests! calls
+  each registered test, in the order of registration unless `:test/seed` is set.
+  """
+  [& args]
+  (when (or (zero? (length args))
+            (and (= 1 (length args)) (symbol? (first args))))
+    (error "arity mismatch"))
+  (def [name forms] (if (symbol? (first args))
+                      [(first args) (slice args 1)]
+                      [(symbol "_test" (gensym)) args]))
+  (def has-metadata? (and (> (length forms) 1) (map? (first forms))))
+  (def meta-dict (if has-metadata? (first forms) {}))
+  (def body (if has-metadata? (slice forms 1) forms))
+  (def meta (if (get meta-dict :skip-when)
+              `(merge '~meta-dict {:skip-when (fn [] ~(get meta-dict :skip-when))})
+              `'~meta-dict))
+  (def nameg (gensym))
+  (def namek (keyword name))
+  `(def ~name ~meta-dict
+     (do
+       (def ~nameg (fn ~namek []
+                     (~setup-test '~name)
+                     ~|body
+                     (~teardown-test '~name)))
+       (~register-test '~name ~nameg ~meta)
+       (fn ~namek [& {silent? :silent?}]
+         (~nameg)
+         (unless silent?
+           (~print-results))
+         (~reset-tests!)
+         nil))))
+
+;;; Running
+
+; Returns a copy of names in an order determined by seed, using Fisher-Yates.
+(defn- shuffled [names seed]
+  (def out (array/slice names))
+  (def rng (math/rng (string seed)))
+  (var i (- (length out) 1))
+  (while (> i 0)
+    (def j (math/rng-int rng (+ i 1)))
+    (def tmp (get out i))
+    (put! out i (get out j))
+    (put! out j tmp)
+    (-- i))
+  out)
+
+(defn run-tests!
+  """
+  Runs the registered tests and returns their reports. The options are
+  `:silent?`, which omits the printing of the report, and `:no-exit?`, which
+  returns even if a test failed. The default report is coloured if the dynamic
+  binding `:test/color?` is truthy.
+
+  Calls ^os/exit with status 1 if a test failed, unless `:no-exit?` is truthy
+  or the dynamic binding `:test/repl?` is truthy. If `:test/repl?` is truthy,
+  the tests and reports are reset and ^module/cache is emptied before the
+  function returns.
+
+  Each report is a table with the keys `:test`, the name of the test,
+  `:passes` and `:failures`, the results of the assertions that passed and
+  failed. The report of a skipped test also has `:skipped?` set to `true`. A
+  skipped test is left out of the totals. The results are described in
+  ^set-on-result-hook.
+
+  The dynamic binding `:test/tests`, a collection of symbols, selects the tests
+  to run. The dynamic binding `:test/skips` selects the tests to omit.
+  `:test/tests` takes precedence. Selection is applied before `:skip-when`.
+
+  The tests run in the order they were registered, unless the dynamic binding
+  `:test/seed` is an integer. Then they run in an order determined by that seed,
+  and the same seed and the same registered tests give the same order. The
+  function takes no seed of its own, so a run is reproduced by the seed that
+  set the binding, as `wattle check` reports it.
+  """
+  [& {no-exit? :no-exit? silent? :silent?}]
+  (set run-order (if-let [seed (dyn :test/seed)]
+                   (shuffled test-names seed)
+                   test-names))
+  (each name run-order
+    (def test-entry (get tests name))
+    (cond
+      (dyn :test/tests)
+      (when (has-value? (dyn :test/tests) name)
+        (run-test-entry name test-entry))
+      (dyn :test/skips)
+      (unless (has-value? (dyn :test/skips) name)
+        (run-test-entry name test-entry))
+      (run-test-entry name test-entry)))
+  (unless silent?
+    (print-reports))
+  (def in-repl? (dyn :test/repl?))
+  (def report-values (values reports))
+  (when (and (not no-exit?)
+             (not in-repl?)
+             (not= num-tests-run num-tests-passed))
+    (os/exit 1))
+  (when in-repl?
+    (reset-tests!)
+    (empty-module-cache!))
+  report-values)
+
+(defmacro exercise!
+  """
+  Runs the forms in body, calls ^run-tests! with the elements of args and
+  resets the test suite. Returns the value of ^run-tests!. The forms of args
+  are the options of ^run-tests!, so an empty vector supplies none. Like
+  ^run-tests!, it calls ^os/exit if a test failed unless `:no-exit?` is truthy.
+  """
+  [args & body]
+  (def ret-val (gensym))
+  `(do
+     ~|body
+     (def ~ret-val (~run-tests! ~|args))
+     (~reset-tests!)
+     ~ret-val))
+
+;;; Review
+
+(defn- review-1 [path & args]
+  (def env (curenv))
+  (def kargs (table |args))
+  (def as (get kargs :as))
+  (def pfx (get kargs :prefix))
+  (def newenv (require path |args))
+  (each v (values newenv)
+    (when (dictionary? v)
+      (put! v :private nil)))
+  (def prefix (or (and as (string as "/"))
+                  pfx
+                  (string (last (string/split "/" path)) "/")))
+  (merge-module env newenv prefix))
+
+(defmacro review
+  """
+  Imports all the bindings of the module at path as public. It is called like
+  ^import. A binding that is private in the module is public in the importer,
+  so a test can reach it.
+  """
+  [path & args]
+  (def pairs-of-args (partition 2 args))
+  (def argm (mapcat (fn [[k v]] [k (if (= k :as) (string v) v)]) pairs-of-args))
+  (tuple review-1 (string path) |argm))

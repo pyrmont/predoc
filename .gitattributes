@@ -1,0 +1,2 @@
+*.wattle linguist-language=Clojure
+deps/** linguist-vendored

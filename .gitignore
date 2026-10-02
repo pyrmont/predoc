@@ -1,4 +1,3 @@
-/.jeep/
-/_build/
-/_modules/
+/.zig-cache/
+/zig-out/
 .DS_Store

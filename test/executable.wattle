@@ -1,0 +1,153 @@
+(import ../deps/gum/test :prefix "")
+
+(import ../lib/formats/css)
+
+; Helpers
+
+(defn- lines-to-stream [lines]
+  (def [r w] (os/pipe))
+  (:write w lines)
+  (:close w)
+  r)
+
+(defn- rmrf
+  [path]
+  (case (os/lstat path :mode)
+    :directory (do
+                 (each subpath (os/dir path)
+                   (rmrf (string path "/" subpath)))
+                 (os/rmdir path))
+    nil nil ; do nothing if file does not exist
+    (os/rm path)))
+
+; The tests run the program with the Wattle interpreter that is running them.
+(def- program [(dyn :executable) "lib/cli.wattle"])
+
+(defn- shell-capture [args test-stdin]
+  (def x (os/spawn (array/concat! ![] program args) :p {:in test-stdin :out :pipe :err :pipe}))
+  (def o (:read (x :out) :all))
+  (def e (:read (x :err) :all))
+  (:wait x)
+  [(get x :return-code) o e])
+
+(def- test-version "DEVEL-test")
+
+; Tests
+
+(deftest cli-no-args
+  (def [exit-code test-out test-err]
+    (shell-capture [] stdin))
+  (def msg
+    """
+    predoc: path is required
+    Try 'predoc --help' for more information.
+    """)
+  (is (== 1 exit-code))
+  (is (== nil test-out))
+  (is (== (string msg "\n") test-err)))
+
+(deftest cli-bad-option
+  (def [exit-code test-out test-err]
+    (shell-capture ["--bad-option"] stdin))
+  (def msg
+    """
+    predoc: unrecognized option '--bad-option'
+    Try 'predoc --help' for more information.
+    """)
+  (is (== 1 exit-code))
+  (is (== nil test-out))
+  (is (== (string msg "\n") test-err)))
+
+(deftest cli-short-version
+  (def [exit-code test-out test-err]
+    (shell-capture ["-v"] stdin))
+  (is (== 0 exit-code))
+  (is (== (string test-version "\n") test-out))
+  (is (== nil test-err)))
+
+(deftest cli-long-version
+  (def [exit-code test-out test-err]
+    (shell-capture ["--version"] stdin))
+  (is (== 0 exit-code))
+  (is (== (string test-version "\n") test-out))
+  (is (== nil test-err)))
+
+(deftest cli-good-input
+  (def input
+    """
+    NAME
+    ===
+
+    **foobar** - putting the bar in your foo
+    """)
+  (def output
+    """
+    .
+    .Sh NAME
+    .Nm foobar
+    .Nd putting the bar in your foo
+    """)
+  (def [exit-code test-out test-err]
+    (shell-capture ["--no-ad" "--name" "foobar" "--output" "-" "-"]
+                   (lines-to-stream input)))
+  (is (== 0 exit-code))
+  (is (== (string output "\n\n") test-out))
+  (is (== nil test-err)))
+
+(deftest cli-css-writes-page-and-stylesheet
+  (def input
+    """
+    NAME
+    ===
+
+    **foobar** - putting the bar in your foo
+    """)
+  (def [exit-code _test-out test-err]
+    (shell-capture ["--no-ad" "--name" "foobar" "--format" "html"
+                    "--css" "tmp/predoc.css" "--output" "tmp/foobar.1.html" "-"]
+                   (lines-to-stream input)))
+  (is (== 0 exit-code))
+  (is (== nil test-err))
+  (def page (slurp "tmp/foobar.1.html"))
+  (is (string/has-prefix? "<!doctype html>" page))
+  (is (string/find """<link rel="stylesheet" href="predoc.css">""" page))
+  (is (== css/value (slurp "tmp/predoc.css"))))
+
+(deftest cli-edn-format
+  (def [exit-code test-out test-err]
+    (shell-capture ["--name" "foobar" "--format" "edn" "--output" "-" "-"]
+                   (lines-to-stream "NAME\n===\n")))
+  (is (== 0 exit-code))
+  (is (== nil test-err))
+  (def ast (first (parse-all test-out)))
+  (is (== [{:indent 0 :type :heading :value ["NAME"] :level 1}] ast)))
+
+(deftest cli-css-rejected-for-mdoc
+  (def [exit-code test-out test-err]
+    (shell-capture ["--name" "foobar" "--css" "tmp/predoc.css"
+                    "--output" "-" "-"]
+                   (lines-to-stream "NAME\n===\n")))
+  (is (== 1 exit-code))
+  (is (== nil test-out))
+  (is (string/has-prefix? "error: stylesheet only valid with html format"
+                          test-err)))
+
+(deftest cli-bad-input
+  (def input
+    """
+    ---
+    Title: foobar(1)
+    ---
+    """)
+  (def output "error: could not parse date in frontmatter\n")
+  (def [exit-code test-out test-err]
+    (shell-capture ["--name" "foobar" "--output" "-" "-"]
+                   (lines-to-stream input)))
+  (is (== 1 exit-code))
+  (is (== nil test-out))
+  (is (string/has-prefix? output test-err)))
+
+(os/setenv "PREDOC_BUILD_VERSION" test-version)
+(defer (rmrf "tmp")
+  (os/mkdir "tmp")
+  (run-tests!))
