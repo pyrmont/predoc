@@ -90,7 +90,28 @@ $ git commit -m "Reset version to DEVEL"
 $ git push origin master
 ```
 
-## 6. Browser Runtime
+## 6. Update the Browser Runtime
 
-The browser demo in `pages` has not been ported to Wattle, so there is nothing
-to rebuild at release time. See the README.
+Rebuild the WebAssembly module and verify it:
+
+```console
+$ wattle res/tools/wasm.wattle
+$ node res/tools/wasm-smoke.mjs
+$ python3 -m http.server --directory pages 8000
+```
+
+Open <http://localhost:8000/> and check the browser demo. Stop the server when
+finished.
+
+Review and commit the new `pages/predoc.wasm` and the updated reference in
+`pages/index.html`. Historically this follow-up commit has been named:
+
+```text
+Update WebAssembly blob
+```
+
+Push the commit to deploy the updated `pages` directory:
+
+```console
+$ git push origin master
+```

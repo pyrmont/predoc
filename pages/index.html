@@ -5,7 +5,7 @@
   <title>Predoc - A Markdown Flavour for Writing Man Pages</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css?202608080238">
-  <script type="module" src="dingus.js?7ed3ec0ae5f5"></script>
+  <script type="module" src="dingus.js?6c4d9c5c56b5"></script>
 </head>
 <body>
 <nav>
@@ -35,13 +35,14 @@ of their own terminal using standard tools like <strong>man</strong>.</p>
 </div>
 <h2 id="implementation">Implementation</h2>
 <p>The reference implementation for Predoc is written in the <a
-href="https://janet-lang.org">Janet</a> programming language. Janet is a
-Lisp that comes with a powerful PEG (parser expression grammar) engine
-as part of the runtime.</p>
+href="https://github.com/pyrmont/wattle">Wattle</a> programming language.
+Wattle is a Lisp that comes with a powerful PEG (parser expression grammar)
+engine as part of the runtime. The dingus above runs the same program,
+compiled to WebAssembly.</p>
 <p>The reference implementation includes a single-binary command-line
 utility that you can use to convert Predoc into mdoc. <a
 href="https://github.com/pyrmont/predoc/releases">Pre-built binaries</a>
-are available for FreeBSD, Linux and macOS from the repository on
+are available for Linux and macOS from the repository on
 GitHub.</p>
 <h2 id="philosophy">Philosophy</h2>
 <p>Markdown is a lightweight markup language that optimises for

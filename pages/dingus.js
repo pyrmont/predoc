@@ -1,24 +1,42 @@
-import init from "./janet.7ed3ec0ae5f5.js";
+// The conversion runs in a worker, so typing is never held up by it. Only one
+// conversion is in flight at a time and, while it runs, only the latest text is
+// kept, so the preview catches up in one step rather than falling behind.
+const worker = new Worker(new URL("./worker.js" + new URL(import.meta.url).search, import.meta.url), {
+  type: "module",
+});
 
-let vm;
+let busy = false;
+let pending = null;
+let handler = null;
 
-function convert(input) {
-  const source = input
-    .replace(/\\/g, '\\\\')  // backslashes
-    .replace(/"/g, '\\"')    // double quotes
-    .replace(/\n/g, '\\n');   // newlines
-  try {
-    const res = vm.ccall(
-      "run_janet",
-      "string",
-      ["string"],
-      [`(convert "predoc" "${source}")`]
-    );
-    console.log(res);
-    return res;
-  } catch (e) {
-    console.error("vm.ccall failed:", e);
-    return "";
+function send(input) {
+  busy = true;
+  worker.postMessage({ id: 0, input });
+}
+
+worker.addEventListener("message", (event) => {
+  busy = false;
+  const res = event.data;
+  if (pending !== null) {
+    // The text has changed since this conversion began, so show the next one.
+    const input = pending;
+    pending = null;
+    send(input);
+    return;
+  }
+  handler(res);
+});
+
+worker.addEventListener("error", (event) => {
+  console.error("worker failed:", event.message);
+});
+
+function convert(input, callback) {
+  handler = callback;
+  if (busy) {
+    pending = input;
+  } else {
+    send(input);
   }
 }
 
@@ -27,30 +45,24 @@ function update(element, value, error) {
     console.error("cannot update non-existent element");
     return;
   }
-  const res = convert(value);
-  if("" !== res) {
-    error.style.display = "none";
-    element.style.opacity = "1";
-    element.innerHTML = res;
-  } else {
-    element.style.opacity = "0.25";
-    error.textContent = "Error: could not parse input";
-    error.style.display = "block";
-  }
+  convert(value, (res) => {
+    if (0 === res.status) {
+      error.style.display = "none";
+      element.style.opacity = "1";
+      element.innerHTML = res.stdout;
+    } else {
+      const message = res.stderr.split("\n")[0].replace(/^error: /, "");
+      element.style.opacity = "0.25";
+      error.textContent = `Error: ${message || "could not parse input"}`;
+      error.style.display = "block";
+    }
+  });
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
   const inputEl = document.getElementById("input");
   const outputEl = document.getElementById("output");
   const errorEl = document.getElementById("error");
-
-  try {
-    vm = await init();
-    console.log("Wasm init OK");
-  } catch (e) {
-    console.error("init() failed:", e);
-    return;
-  }
 
   if (!inputEl) {
     console.error("#input not found");
@@ -74,6 +86,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   const example_text = await example_resp.text();
 
   inputEl.value = example_text;
-  console.log(inputEl.value);
   update(outputEl, inputEl.value, errorEl);
 });

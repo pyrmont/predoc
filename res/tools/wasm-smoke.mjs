@@ -1,50 +1,31 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const expectedVersion = process.argv[2];
-
-if (!expectedVersion) {
-  console.error("usage: node res/tools/wasm-smoke.mjs <janet-version>");
-  process.exit(2);
-}
-
-assert.match(
-  expectedVersion,
-  /^\d+\.\d+\.\d+$/,
-  `invalid Janet version: ${expectedVersion}`,
-);
+import { run } from "../../pages/wasi.js";
 
 const pagesUrl = new URL("../../pages/", import.meta.url);
-const dingus = await readFile(new URL("dingus.js", pagesUrl), "utf8");
-const moduleMatches = [
-  ...dingus.matchAll(/^import init from "\.\/(janet\.[0-9a-f]{12}\.js)";$/gm),
-];
-
-assert.equal(
-  moduleMatches.length,
-  1,
-  "pages/dingus.js must import exactly one content-addressed Janet module",
+const module = await WebAssembly.compile(
+  await readFile(new URL("predoc.wasm", pagesUrl)),
 );
 
-const moduleName = moduleMatches[0][1];
-const { default: init } = await import(new URL(moduleName, pagesUrl));
-const vm = await init();
+const html = ["--no-ad", "--name", "predoc", "--format", "html", "--output", "-", "-"];
 
-const runJanet = (source) =>
-  vm.ccall("run_janet", "string", ["string"], [source]);
+const version = await run(module, ["--version"], "");
+assert.equal(version.status, 0, "--version failed");
+assert.match(version.stdout, /^\S+\n$/, "--version printed unexpected output");
 
+const converted = await run(module, html, "Load the **jump** program.");
+assert.equal(converted.status, 0, converted.stderr);
 assert.equal(
-  runJanet("(string janet/version)"),
-  expectedVersion,
-  "the embedded Janet version does not match",
-);
-
-assert.equal(
-  runJanet('(convert "predoc" "Load the **jump** program.")'),
+  converted.stdout,
   '<div class="manpage">\n' +
     '<p>Load the <span class="command">jump</span> program.</p>\n' +
-    "</div>",
+    "</div>\n",
   "Predoc conversion returned unexpected HTML",
 );
 
-console.log(`Wasm smoke test passed (${moduleName}, Janet ${expectedVersion})`);
+const bad = await run(module, ["--name", "x", "--output", "-", "-"], "---\nTitle: foobar(1)\n---\n");
+assert.equal(bad.status, 1, "bad input should fail");
+assert.match(bad.stderr, /^error: could not parse date in frontmatter/);
+
+console.log(`Wasm smoke test passed (predoc ${version.stdout.trim()})`);

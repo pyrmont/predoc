@@ -128,7 +128,10 @@
   res)
 
 (def- i-grammar*
-  `{:main (/ '(* (any (+ :predoc :delim :ln :raw :br :esc :ch)) -1) ~match-delims)
+  `{:main (/ '(* (any (+ :plain :predoc :delim :ln :raw :br :esc :ch)) -1) ~match-delims)
+    ; a run of characters that cannot begin any of the constructs below; keep
+    ; the set in step with the first byte of each construct
+    :plain (some (if-not (set "*_`[]<\\") 1))
     ; helpers
     :t (constant true)
     :f (constant false)

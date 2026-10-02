@@ -211,10 +211,24 @@ More information about `predoc` is, of course, available in `predoc(1)`.
 
 ## Browser Demo
 
-The browser demo in `pages` runs the original Janet implementation of Predoc,
-compiled to WebAssembly. It has not been ported to Wattle. The scripts in
-`res/tools` that build it need the Janet sources, which have been removed, so
-the demo can't currently be rebuilt. The last build still works.
+The browser demo in `pages` runs `predoc` compiled to WebAssembly. A web worker
+(`pages/worker.js`) does the conversions so that typing is never held up. Each
+one starts a fresh instance of `pages/predoc.wasm`, which `pages/wasi.js` gives
+its arguments and standard input and whose output it collects. To
+rebuild the module, run:
+
+```console
+$ wattle res/tools/wasm.wattle
+```
+
+This builds the WASI target of `predoc`, writes `pages/predoc.wasm` and updates
+the cache reference in `pages/index.html`. Zig and the Wattle package are
+needed, as for any build. To check the result without a browser, run the
+Node.js smoke test:
+
+```console
+$ node res/tools/wasm-smoke.mjs
+```
 
 ## Alternatives
 

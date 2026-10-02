@@ -43,3 +43,6 @@ jobs:
           zig-out/bin/predoc --help
           zig-out/bin/predoc --no-ad --output - man/man1/predoc.1.predoc
         working-directory: predoc
+      - name: Check browser module
+        run: node res/tools/wasm-smoke.mjs
+        working-directory: predoc

@@ -1,0 +1,60 @@
+; Build predoc as a WebAssembly (WASI) command and publish it to pages. Run
+; from anywhere with `wattle res/tools/wasm.wattle`. This needs Zig and the
+; Wattle package, as `wattle build exe` does.
+
+(import ../../lib/util)
+
+(def- s util/sep)
+
+(defn- path
+  [& parts]
+  (string/join s parts))
+
+(defn- run
+  [args message]
+  (def [ok? result] (protect (os/execute args :px)))
+  (unless ok?
+    (error (string message ": " result)))
+  (unless (zero? result)
+    (error (string message " (exit status " result ")"))))
+
+(defn- run-output
+  [args message]
+  (def proc (os/spawn args :p {:out :pipe}))
+  (def output (:read (proc :out) :all))
+  (os/proc-wait proc)
+  (unless (zero? (proc :return-code))
+    (error message))
+  (string/trim output))
+
+(defn- replace-ref
+  [html fingerprint]
+  (def prefix "src=\"dingus.js?")
+  (def begin (string/find prefix html))
+  (unless begin
+    (error "dingus.js cache reference is missing"))
+  (def end (string/find "\"" html (+ begin (length prefix))))
+  (string (string/slice html 0 (+ begin (length prefix)))
+          fingerprint
+          (string/slice html end)))
+
+(defn main
+  "Builds pages/predoc.wasm and points pages/index.html at it."
+  [script & args]
+  (def threeup (comp util/parent util/parent util/parent))
+  (def root (-> (dyn :current-file) util/abspath threeup))
+  (os/cd root)
+  (print "Building WebAssembly module...")
+  (run [(dyn :executable) "build" "exe" "--release" "small"
+        "--target" "wasm32-wasi" "predoc"]
+       "cannot build predoc.wasm")
+  (def built (path root "zig-out" "bin" "predoc.wasm"))
+  (def published (path root "pages" "predoc.wasm"))
+  (spit published (slurp built))
+  (def fingerprint
+    (string/slice (run-output ["git" "hash-object" published]
+                              "cannot hash predoc.wasm")
+                  0 12))
+  (def html-file (path root "pages" "index.html"))
+  (spit html-file (replace-ref (slurp html-file) fingerprint))
+  (print "published pages/predoc.wasm (" fingerprint ")"))
