@@ -4,6 +4,8 @@
  :author "Michael Camilleri"
  :license "MIT"
  :url "https://github.com/pyrmont/predoc"
+ :man ["man/man1/predoc.1"
+       "man/man7/predoc.7"]
  :artifacts [{:type :exe
               :name "predoc"
               :entry "lib/cli.wattle"}
