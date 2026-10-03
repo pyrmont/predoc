@@ -1,6 +1,6 @@
-; Build predoc as a WebAssembly (WASI) command and publish it to pages. Run
-; from anywhere with `wattle res/tools/wasm.wattle`. This needs Zig and the
-; Wattle package, as `wattle build exe` does.
+; Build predoc as a web program and publish it to pages. Run from anywhere
+; with `wattle res/tools/wasm.wattle`. This needs Zig and the Wattle package, as
+; `wattle build web` does.
 
 (import ../../lib/util)
 
@@ -38,23 +38,36 @@
           fingerprint
           (string/slice html end)))
 
+(defn- clear
+  [dir]
+  (when (os/stat dir)
+    (each name (os/dir dir)
+      (os/rm (path dir name)))))
+
 (defn main
-  "Builds pages/predoc.wasm and points pages/index.html at it."
+  "Builds the web program into pages/predoc and points pages/index.html at it."
   [script & args]
   (def threeup (comp util/parent util/parent util/parent))
   (def root (-> (dyn :current-file) util/abspath threeup))
   (os/cd root)
-  (print "Building WebAssembly module...")
-  (run [(dyn :executable) "build" "exe" "--release" "small"
-        "--target" "wasm32-wasi" "predoc"]
-       "cannot build predoc.wasm")
-  (def built (path root "zig-out" "bin" "predoc.wasm"))
-  (def published (path root "pages" "predoc.wasm"))
-  (spit published (slurp built))
+  (def built (path root "zig-out" "web" "dingus"))
+  ; The build adds files named by their hash and removes none, so clear first.
+  (clear built)
+  (print "Building web program...")
+  (run [(dyn :executable) "build" "web" "dingus"]
+       "cannot build the web program")
+  (def published (path root "pages" "predoc"))
+  (unless (os/stat published)
+    (os/mkdir published))
+  ; The names carry a hash of the build, so a rebuild replaces every file.
+  (clear published)
+  (each name (os/dir built)
+    (spit (path published name) (slurp (path built name))))
+  (def loader (path published "dingus.js"))
   (def fingerprint
-    (string/slice (run-output ["git" "hash-object" published]
-                              "cannot hash predoc.wasm")
+    (string/slice (run-output ["git" "hash-object" loader]
+                              "cannot hash dingus.js")
                   0 12))
   (def html-file (path root "pages" "index.html"))
   (spit html-file (replace-ref (slurp html-file) fingerprint))
-  (print "published pages/predoc.wasm (" fingerprint ")"))
+  (print "published pages/predoc (" fingerprint ")"))

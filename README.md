@@ -212,17 +212,19 @@ More information about `predoc` is, of course, available in `predoc(1)`.
 ## Browser Demo
 
 The browser demo in `pages` runs `predoc` compiled to WebAssembly. A web worker
-(`pages/worker.js`) does the conversions so that typing is never held up. Each
-one starts a fresh instance of `pages/predoc.wasm`, which `pages/wasi.js` gives
-its arguments and standard input and whose output it collects. To
-rebuild the module, run:
+(`pages/worker.js`) does the conversions so that typing is never held up. It
+loads the program with `load` from `pages/predoc/dingus.js` once and reuses
+one instance of the runtime for every conversion. To rebuild the program, run:
 
 ```console
 $ wattle res/tools/wasm.wattle
 ```
 
-This builds the WASI target of `predoc`, writes `pages/predoc.wasm` and updates
-the cache reference in `pages/index.html`. Zig and the Wattle package are
+This runs `wattle build web dingus`, replaces the files in `pages/predoc`
+and updates the cache reference in `pages/index.html`. The program is the
+`dingus` artifact in `info.edn`. It is an image run by a runtime that has
+no parser or compiler, so the page loads `wattle-<hash>.wasm`,
+`dingus-<hash>.wimage` and `wasi-<hash>.js`. Zig and the Wattle package are
 needed, as for any build. To check the result without a browser, run the
 Node.js smoke test:
 

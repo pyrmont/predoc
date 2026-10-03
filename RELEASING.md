@@ -92,7 +92,7 @@ $ git push origin master
 
 ## 6. Update the Browser Runtime
 
-Rebuild the WebAssembly module and verify it:
+Rebuild the web program and verify it:
 
 ```console
 $ wattle res/tools/wasm.wattle
@@ -103,8 +103,9 @@ $ python3 -m http.server --directory pages 8000
 Open <http://localhost:8000/> and check the browser demo. Stop the server when
 finished.
 
-Review and commit the new `pages/predoc.wasm` and the updated reference in
-`pages/index.html`. Historically this follow-up commit has been named:
+Review and commit the new files in `pages/predoc` (the old ones are deleted) and
+the updated reference in `pages/index.html`. Historically this follow-up commit
+has been named:
 
 ```text
 Update WebAssembly blob

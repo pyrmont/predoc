@@ -6,4 +6,7 @@
  :url "https://github.com/pyrmont/predoc"
  :artifacts [{:type :exe
               :name "predoc"
+              :entry "lib/cli.wattle"}
+             {:type :web
+              :name "dingus"
               :entry "lib/cli.wattle"}]}
