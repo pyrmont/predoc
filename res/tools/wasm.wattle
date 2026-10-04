@@ -18,15 +18,6 @@
   (unless (zero? result)
     (error (string message " (exit status " result ")"))))
 
-(defn- run-output
-  [args message]
-  (def proc (os/spawn args :p {:out :pipe}))
-  (def output (:read (proc :out) :all))
-  (os/proc-wait proc)
-  (unless (zero? (proc :return-code))
-    (error message))
-  (string/trim output))
-
 (defn- replace-ref
   [html fingerprint]
   (def prefix "src=\"dingus.js?")
@@ -63,11 +54,13 @@
   (clear published)
   (each name (os/dir built)
     (spit (path published name) (slurp (path built name))))
-  (def loader (path published "dingus.js"))
-  (def fingerprint
-    (string/slice (run-output ["git" "hash-object" loader]
-                              "cannot hash dingus.js")
-                  0 12))
+  ; dingus.js keeps its name but names the hashed files, so the hash in the
+  ; runtime's name is enough to bust the cache.
+  (def runtime
+    (find (fn [name] (string/has-prefix? "wattle-" name)) (os/dir published)))
+  (unless runtime
+    (error "the build produced no runtime"))
+  (def fingerprint (string/slice runtime 7 -6))
   (def html-file (path root "pages" "index.html"))
   (spit html-file (replace-ref (slurp html-file) fingerprint))
   (print "published pages/predoc (" fingerprint ")"))
