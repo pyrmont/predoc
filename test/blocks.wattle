@@ -647,4 +647,16 @@
   (def expect3 [{:indent 3 :type :paragraph :value ["foo bar baz"]}])
   (is (== expect3 (parse-blocks input3))))
 
+(deftest block-paragraph-line-start
+  (def input
+    """
+    **foo** bar
+      **baz** **foo**
+    **foo** qux
+    """)
+  (def [block] (parse-blocks input))
+  (def cmds (filter (fn [v] (and (table? v) (= :command (get v :type))))
+                    (get block :value)))
+  (is (== [true nil nil true] (map (fn [c] (get c :bol)) cmds))))
+
 (run-tests!)

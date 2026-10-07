@@ -204,4 +204,169 @@
     """)
   (is (== (string/replace """\u200B""" "\u200B" expect) actual)))
 
+(deftest mdoc-synopsis-subcommand
+  (def input
+    """
+    SYNOPSIS
+    ========
+
+    **foo** ***bar*** _baz_
+        _qux_
+    **foo** ***bar*** | **tar**
+    """)
+  (def blocks (parse-blocks input))
+  (def actual (render-doc "foo-bar" blocks))
+  (def expect
+    """
+    .
+    .Sh SYNOPSIS
+    .Nm foo
+    .Cm bar
+    .Ar baz
+    .Ar qux
+    .Nm foo
+    .Cm bar
+    |
+    .Ic tar
+
+    """)
+  (is (== expect actual)))
+
+(deftest mdoc-synopsis-program-name
+  (def input
+    """
+    SYNOPSIS
+    ========
+
+    **foo** _bar_
+    **foo** _baz_
+    """)
+  (def blocks (parse-blocks input))
+  (def actual (render-doc "foo" blocks))
+  (def expect
+    """
+    .
+    .Sh SYNOPSIS
+    .Nm
+    .Ar bar
+    .Nm
+    .Ar baz
+
+    """)
+  (is (== expect actual)))
+
+(deftest mdoc-synopsis-name-in-body
+  (def input
+    """
+    SYNOPSIS
+    ========
+
+    **foo** ***bar***
+
+    DESCRIPTION
+    ===========
+
+    Run **foo** or **foo-bar** but not **tar**.
+    """)
+  (def blocks (parse-blocks input))
+  (def actual (render-doc "foo-bar" blocks))
+  (def expect
+    """
+    .
+    .Sh SYNOPSIS
+    .Nm foo
+    .Cm bar
+    .
+    .Sh DESCRIPTION
+    Run
+    .Nm foo
+    or
+    .Nm
+    but not
+    .Ic tar .
+
+    """)
+  (is (== expect actual)))
+
+(deftest mdoc-name-multiword
+  (def input
+    """
+    NAME
+    ====
+
+    **foo bar** - frobs things
+
+    SYNOPSIS
+    ========
+
+    **foo bar** _baz_
+    **foo bar** **-a**
+
+    DESCRIPTION
+    ===========
+
+    Run **foo bar** or **foo-bar**.
+    """)
+  (def blocks (parse-blocks input))
+  (def actual (render-doc "foo-bar" blocks))
+  (def expect
+    """
+    .
+    .Sh NAME
+    .Nm "foo bar"
+    .Nd frobs things
+    .
+    .Sh SYNOPSIS
+    .Nm
+    .Ar baz
+    .Nm
+    .Fl a
+    .
+    .Sh DESCRIPTION
+    Run
+    .Nm
+    or
+    .Nm foo-bar .
+
+    """)
+  (is (== expect actual)))
+
+(deftest mdoc-name-hyphenated
+  (def input
+    """
+    NAME
+    ====
+
+    **foo-bar** - frobs things
+
+    SYNOPSIS
+    ========
+
+    **foo** ***bar***
+
+    DESCRIPTION
+    ===========
+
+    Run **foo-bar**.
+    """)
+  (def blocks (parse-blocks input))
+  (def actual (render-doc "foo-bar" blocks))
+  (def expect
+    """
+    .
+    .Sh NAME
+    .Nm foo-bar
+    .Nd frobs things
+    .
+    .Sh SYNOPSIS
+    .Nm foo
+    .Cm bar
+    .
+    .Sh DESCRIPTION
+    Run
+    .Nm .
+
+    """)
+  (is (== expect actual)))
+
 (run-tests!)

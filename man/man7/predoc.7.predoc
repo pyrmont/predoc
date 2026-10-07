@@ -550,6 +550,34 @@ the ``Ic`` macro. The exception to this is if the command matches the program
 name provided to `predoc(1)`. In this case, a command produces the name of the
 man page using the ``Nm`` macro.
 
+In the SYNOPSIS section, a different rule applies. A command that begins at the
+start of a line (that is, with no preceding whitespace) produces the ``Nm``
+macro with the text of the command as its argument, whether or not the text
+matches the program name. Any other command in the SYNOPSIS section produces
+the ``Ic`` macro. This allows the SYNOPSIS of a page for a subcommand, such as
+``git-push``, to name the program that is invoked (``git``) rather than the
+name of the page (``git-push``). Each invocation should begin on its own line
+and any continuation lines should be indented.
+
+A command in the NAME section is a name, as is a command in the SYNOPSIS section
+that begins a line. Each is a name for the rest of the man page. Outside these
+two sections, a command that matches the program name or one of these names
+produces the ``Nm`` macro. Any other command produces the ``Ic`` macro.
+
+A name can contain spaces, in which case it is passed to `mdoc(7)` as a single
+quoted argument.
+
+````
+**git push** - update remote refs along with associated objects
+````
+
+This allows a page for a subcommand to be named in either of two ways. The name
+in the NAME section can be the same as the program name (``git-push``, taken
+from the file name) with the SYNOPSIS section naming the program that is
+invoked, as above. Or the name in the NAME section can contain a space
+(``git push``) and be used throughout. In both cases, `predoc(1)` need not be
+given a name with ``--name``.
+
 Cross-References (External)
 ---------------------------
 

@@ -13,12 +13,15 @@
 
 (def- authors ![])
 (var- no-author? true)
+(def- names !{})
 (var- progname nil)
 (var- section nil)
 (var- subsection nil)
 
 (defn reset []
   (array/clear! authors)
+  (each k (keys names)
+    (put! names k nil))
   (set progname nil)
   (set no-author? true)
   (set section nil)
@@ -208,7 +211,15 @@
 
 (defn- render-command [b node]
   (def name (get node :value))
-  (if (= progname name)
+  (def name? (case section
+               "NAME"
+               true
+               "SYNOPSIS"
+               (get node :bol)
+               (or (= progname name) (get names name))))
+  (when (and name? (or (= "NAME" section) (= "SYNOPSIS" section)))
+    (put! names name true))
+  (if name?
     (buffer/push! b """<span class="name">""" name """</span>""")
     (buffer/push! b """<span class="command">""" name """</span>""")))
 

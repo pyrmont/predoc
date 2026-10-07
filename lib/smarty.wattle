@@ -25,7 +25,8 @@
 (def- cc 125) ; }
 
 (defn- ws? [ch]
-  (or (= ht ch) (= lf ch) (= hs ch)))
+  ; 1 is the line-start marker inserted by the parser
+  (or (= ht ch) (= lf ch) (= hs ch) (= 1 ch)))
 
 (defn pants [b]
   (def res (buffer/new (length b)))

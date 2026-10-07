@@ -33,20 +33,25 @@
 
 (def- authors ![])
 (var- ended-sp? false)
+(def- names !{})
 (var- inline-macros 0)
 (var- needs-pp? false)
 (var- no-author? true)
 (var- progname nil)
+(var- stored nil)
 (var- section nil)
 (var- subsection nil)
 
 (defn reset []
   (array/clear! authors)
+  (each k (keys names)
+    (put! names k nil))
   (set ended-sp? false)
   (set inline-macros 0)
   (set needs-pp? false)
   (set no-author? true)
   (set progname nil)
+  (set stored nil)
   (set section nil)
   (set subsection nil))
 
@@ -283,11 +288,37 @@
 (defn- render-command [b node]
   (def name (get node :value))
   (def macro? (index-of name macros))
-  (if (= progname name)
-    (if (= section "NAME")
-      (buffer-line b ".Nm " (if macro? "\\&" "") name)
-      (buffer-line b ".Nm"))
-    (buffer-line b ".Ic " (if macro? "\\&" "") name)))
+  ; a name containing whitespace is a single quoted argument
+  (def arg
+    (if (string/find " " name)
+      (string "\"" (string/replace-all "\"" "\"\"" name) "\"")
+      (string (if macro? "\\&" "") name)))
+  ; a bare Nm repeats the name that was given in the NAME section (or the
+  ; program name if there was none)
+  (defn nm []
+    (if (= name (or stored progname))
+      (buffer-line b ".Nm")
+      (buffer-line b ".Nm " arg)))
+  (cond
+    ; in the name section, every command is a name
+    (= section "NAME")
+    (do
+      (when (nil? stored)
+        (set stored name))
+      (put! names name true)
+      (buffer-line b ".Nm " arg))
+    ; in the synopsis, only a command at the start of a line is a name
+    (= section "SYNOPSIS")
+    (if (get node :bol)
+      (do
+        (put! names name true)
+        (nm))
+      (buffer-line b ".Ic " arg))
+    ; elsewhere, a command is a name if it is the program name or it was
+    ; introduced as a name in the name or synopsis sections
+    (or (= progname name) (get names name))
+    (nm)
+    (buffer-line b ".Ic " arg)))
 
 (defn- render-emphasis [b node cont-output? & args]
   (def strong? (get args 0))

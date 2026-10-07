@@ -1,0 +1,62 @@
+---
+Title: PKG-WHICH(8)
+Date: 2017-02-28
+License: ./pkg-which.8.license
+---
+
+NAME
+====
+
+**pkg which** - display which package installed a specific file
+
+SYNOPSIS
+========
+
+**pkg which** [**-gopqm**] _file_
+**pkg which** [**--glob**] [**--origin**] [**--path-search**] [**--quiet**]
+         [**--show-match**] _file_
+
+DESCRIPTION
+===========
+
+**pkg which** is used for displaying the package that installed _file_.
+
+OPTIONS
+=======
+
+The following options are supported by **pkg which**:
+
+- **-g**, **--glob**:
+  Treat _file_ as a glob pattern.
+
+- **-m**, **--show-match**:
+  Show files that matched the glob pattern (requires **--glob**).
+
+- **-o**, **--origin**:
+  Show the origin of the package instead of name-version.
+
+- **-p**, **--path-search**:
+  Search for the filename in `PATH`.
+
+- **-q**, **--quiet**:
+  Be quiet.
+
+ENVIRONMENT
+===========
+
+The following environment variables affect the execution of **pkg which**. See
+`pkg.conf(5)` for further description.
+
+- `PKG_DBDIR`
+
+- `PATH`
+
+FILES
+=====
+
+See `pkg.conf(5)`.
+
+SEE ALSO
+========
+
+`pkg.conf(5)`, `pkg(8)`, `pkg-info(8)`, `pkg-rwhich(8)`, `pkg-search(8)`
