@@ -1,8 +1,8 @@
-import { start } from "./wasi-10d007777ae16156.js";
+import { start } from "./wasi-a254849c4b85ebc0.js";
 
 export async function load({
-  wasm = new URL("./wattle-10d007777ae16156.wasm", import.meta.url),
-  image = new URL("./dingus-10d007777ae16156.wimage", import.meta.url),
+  wasm = new URL("./wattle-a254849c4b85ebc0.wasm", import.meta.url),
+  image = new URL("./dingus-a254849c4b85ebc0.wimage", import.meta.url),
 } = {}) {
   const [binary, bytes] = await Promise.all([
     fetch(wasm).then((response) => response.arrayBuffer()),
