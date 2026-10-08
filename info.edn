@@ -1,5 +1,5 @@
 {:name "predoc"
- :version "0.4.1"
+ :version "DEVEL"
  :description "A tool in Wattle to convert man pages from Predoc to mdoc"
  :author "Michael Camilleri"
  :license "MIT"
