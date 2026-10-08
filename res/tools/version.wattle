@@ -31,6 +31,35 @@
   (spit path updated)
   (print "updated " path " to version " new-ver))
 
+(defn- today []
+  (def d (os/date (os/time) true))
+  (string/format "%d-%02d-%02d" (d :year) (inc (d :month)) (inc (d :month-day))))
+
+(defn- changelog
+  "Returns the text of CHANGELOG.md for new-ver. A release number replaces the
+  Unreleased heading with the number and the date. DEVEL adds an empty
+  Unreleased section above the most recent release, if there is none."
+  [text new-ver]
+  (if (= "DEVEL" new-ver)
+    (if (string/find "\n## Unreleased\n" text)
+      text
+      (let [at (string/find "\n## " text)]
+        (unless at
+          (error "CHANGELOG.md has no '## ' heading to add Unreleased above"))
+        (string (string/slice text 0 (inc at)) "## Unreleased\n\n"
+                (string/slice text (inc at)))))
+    (do
+      (unless (string/find "\n## Unreleased\n" text)
+        (error "CHANGELOG.md has no Unreleased section"))
+      (string/replace "\n## Unreleased\n"
+                      (string "\n## " new-ver " (" (today) ")\n")
+                      text))))
+
+(defn- update-changelog
+  [path new-ver]
+  (spit path (changelog (slurp path) new-ver))
+  (print "updated " path " for version " new-ver))
+
 (defn main
   [script version & args]
   (def parent (-> (dyn :current-file)
@@ -38,6 +67,9 @@
                   (util/parent)
                   (util/parent)
                   (util/parent)))
+  ; check the changelog first so that nothing is written if it cannot be updated
+  (def changelog-path (string parent util/sep "CHANGELOG.md"))
+  (changelog (slurp changelog-path) version)
   (def to-update (map #(string parent util/sep $) paths))
   (each path to-update
     (unless (or (= "." path) (= ".." path))
@@ -49,4 +81,5 @@
           (update-edn path version)
           (string/has-suffix? ".predoc" path)
           (update-predoc path version)))))
+  (update-changelog changelog-path version)
   (manpage/main script))

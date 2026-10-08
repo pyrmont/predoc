@@ -54,7 +54,7 @@ jobs:
         run: |
           package="predoc-${{ inputs.version }}"
           mkdir "$package"
-          cp zig-out/bin/predoc man/man1/predoc.1 man/man7/predoc.7 LICENSE "$package/"
+          cp zig-out/bin/predoc man/man1/predoc.1 man/man7/predoc.7 LICENSE CHANGELOG.md "$package/"
           tar -czf "${package}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz" "$package"
         working-directory: predoc
       - name: Upload artifact
@@ -67,6 +67,25 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+    - name: "check out the tag"
+      uses: actions/checkout@v7
+      with:
+        ref: ${{ inputs.version }}
+    # The release's notes are its section of CHANGELOG.md: the lines after its
+    # heading and before the next.
+    - name: "extract the notes"
+      run: |
+        set -eu
+        version="${{ inputs.version }}"
+        awk -v heading="## ${version#v} " '
+          index($0, heading) == 1 { found = 1; next }
+          found && /^## / { exit }
+          found { print }
+        ' CHANGELOG.md > notes.md
+        if [ ! -s notes.md ]; then
+          echo "CHANGELOG.md has no section for ${version#v}"
+          exit 1
+        fi
     - name: "download artifacts"
       uses: actions/download-artifact@v8
       with:
@@ -76,6 +95,7 @@ jobs:
       uses: softprops/action-gh-release@v3
       with:
         draft: true
+        body_path: notes.md
         files: ./artifacts/*
         overwrite_files: false
         tag_name: ${{ inputs.version }}

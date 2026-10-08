@@ -20,6 +20,11 @@ release commit.
 
 ## 2. Prepare the Release Commit
 
+Read the Unreleased section of `CHANGELOG.md` and choose the version from the
+changes it lists: a patch-level version such as 0.2.7 for fixes and a
+minor-level version such as 0.3.0 for new behaviour. Edit the section until it
+describes the release.
+
 Pass the Predoc version without its `v` prefix to the version script:
 
 ```console
@@ -27,7 +32,9 @@ $ wattle res/tools/version.wattle 0.2.6
 ```
 
 The script updates `info.edn`, the Predoc manpage sources and the generated
-mdoc manpages. Review and test the result:
+mdoc manpages, and replaces the Unreleased heading of `CHANGELOG.md` with the
+version and the date. It stops before writing anything if `CHANGELOG.md` has no
+Unreleased section. Review and test the result:
 
 ```console
 $ git diff
@@ -39,7 +46,7 @@ Stage only the version-related files. Do not accidentally include a locally
 built `predoc` executable or other unrelated files:
 
 ```console
-$ git add info.edn man/man1/predoc.1 man/man1/predoc.1.predoc
+$ git add info.edn CHANGELOG.md man/man1/predoc.1 man/man1/predoc.1.predoc
 $ git add man/man7/predoc.7 man/man7/predoc.7.predoc
 $ git commit -m "Prepare for v0.2.6 release"
 $ git push origin master
@@ -69,7 +76,9 @@ Alternatively, open GitHub Actions, select the `release` workflow, choose
 
 The workflow checks out the tag, runs the tests, builds archives for the
 supported platforms and creates a draft GitHub release containing those
-archives. When the workflow succeeds, review the draft release and publish it.
+archives, with the release's section of `CHANGELOG.md` as its notes. The
+workflow fails if `CHANGELOG.md` has no section for the version. When the
+workflow succeeds, review the draft release and publish it.
 
 ## 5. Return to Development
 
@@ -79,16 +88,20 @@ After publishing the release, reset the source version to `DEVEL`:
 $ wattle res/tools/version.wattle DEVEL
 ```
 
-This updates `info.edn`, the manpage sources and the generated manpages again.
+This updates `info.edn`, the manpage sources and the generated manpages again,
+and adds an empty Unreleased section to `CHANGELOG.md`.
 
 Commit the reset and push `master`:
 
 ```console
-$ git add info.edn man/man1/predoc.1 man/man1/predoc.1.predoc
+$ git add info.edn CHANGELOG.md man/man1/predoc.1 man/man1/predoc.1.predoc
 $ git add man/man7/predoc.7 man/man7/predoc.7.predoc
 $ git commit -m "Reset version to DEVEL"
 $ git push origin master
 ```
+
+From then on, each change worth recording adds an entry to the Unreleased
+section of `CHANGELOG.md`.
 
 ## 6. Update the Browser Runtime
 
