@@ -76,8 +76,10 @@ Alternatively, open GitHub Actions, select the `release` workflow, choose
 
 The workflow checks out the tag, runs the tests, builds archives for the
 supported platforms and creates a draft GitHub release containing those
-archives, with the release's section of `CHANGELOG.md` as its notes. The
-workflow fails if `CHANGELOG.md` has no section for the version. When the
+archives, with the release's section of `CHANGELOG.md` as its notes. Each
+entry is joined onto one line, because GitHub keeps the line breaks of a
+release's notes and `CHANGELOG.md` is wrapped to 80 columns. The workflow fails
+if `CHANGELOG.md` has no section for the version. When the
 workflow succeeds, review the draft release and publish it.
 
 ## 5. Return to Development

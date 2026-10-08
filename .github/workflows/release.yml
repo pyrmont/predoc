@@ -72,7 +72,9 @@ jobs:
       with:
         ref: ${{ inputs.version }}
     # The release's notes are its section of CHANGELOG.md: the lines after its
-    # heading and before the next.
+    # heading and before the next. The changelog is wrapped to 80 columns, but
+    # GitHub keeps the line breaks in the notes of a release, so each wrapped
+    # entry is joined onto a single line.
     - name: "extract the notes"
       run: |
         set -eu
@@ -81,7 +83,11 @@ jobs:
           index($0, heading) == 1 { found = 1; next }
           found && /^## / { exit }
           found { print }
-        ' CHANGELOG.md > notes.md
+        ' CHANGELOG.md | awk '
+          /^ +[^ ]/ { sub(/^ +/, ""); line = line " " $0; next }
+          { if (started) print line; line = $0; started = 1 }
+          END { if (started) print line }
+        ' > notes.md
         if [ ! -s notes.md ]; then
           echo "CHANGELOG.md has no section for ${version#v}"
           exit 1
