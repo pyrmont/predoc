@@ -143,7 +143,7 @@ $ cd predoc-<version>
 
 #### From Source
 
-To build the `predoc` binary from source, you need [Zig][zig] 0.16.0 and
+To build the `predoc` binary from source, you need [Zig][zig] 0.17.0 and
 [Wattle][wattle-hp] installed on your system, including its `share/wattle`
 package (for example, by running `zig build -p ~/.local` in a Wattle checkout).
 The build is declared in `info.edn`, so no `build.zig` is needed. Then you can
