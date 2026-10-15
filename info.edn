@@ -1,14 +1,17 @@
 {:name "predoc"
+ :group "net.inqk"
  :version "DEVEL"
  :description "A tool in Wattle to convert man pages from Predoc to mdoc"
  :author "Michael Camilleri"
  :license "MIT"
  :url "https://github.com/pyrmont/predoc"
- :man ["man/man1/predoc.1"
-       "man/man7/predoc.7"]
- :artifacts [{:type :exe
-              :name "predoc"
-              :entry "lib/cli.wattle"}
-             {:type :web
-              :name "dingus"
-              :entry "lib/cli.wattle"}]}
+ :exes [{:type :native
+         :name "predoc"
+         :entry "lib/cli.wattle"}
+        {:type :web
+         :name "dingus"
+         :entry "lib/cli.wattle"}]
+ :docs [{:type :man
+         :files ["man/man1/predoc.1"
+                 "man/man7/predoc.7"]
+         :for ["predoc"]}]}

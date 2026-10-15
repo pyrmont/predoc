@@ -144,7 +144,7 @@ $ cd predoc-<version>
 #### From Source
 
 To build the `predoc` binary from source, you need [Zig][zig] 0.17.0 and
-[Wattle][wattle-hp] installed on your system, including its `share/wattle`
+[Wattle][wattle-hp] 0.2.0 or later installed on your system, including its `share/wattle`
 package (for example, by running `zig build -p ~/.local` in a Wattle checkout).
 The build is declared in `info.edn`, so no `build.zig` is needed. Then you can
 run:
@@ -175,6 +175,17 @@ $ sudo cp zig-out/bin/predoc /usr/local/bin/
 $ sudo cp predoc.1 /usr/local/share/man/man1/
 $ sudo cp predoc.7 /usr/local/share/man/man7/
 ```
+
+If you have Wattle installed, you can instead build and install `predoc` and
+its man pages under Wattle's prefix in one step:
+
+```console
+$ wattle apps install https://github.com/pyrmont/predoc
+```
+
+The `predoc` binary is placed in the prefix's `bin/` directory and the man
+pages in `share/man/`. Run `wattle apps upgrade predoc` to reinstall it from
+the repository and `wattle apps remove predoc` to remove it.
 
 ### Using
 

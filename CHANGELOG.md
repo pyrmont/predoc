@@ -5,6 +5,11 @@ since the most recent release are under Unreleased.
 
 ## Unreleased
 
+- Build with Wattle 0.2.0. `info.edn` declares the executables under `:exes`
+  and the man pages under `:docs` in place of `:artifacts` and `:man`, and
+  gives the group `net.inqk`, so `wattle apps install` can install `predoc`
+  and its man pages.
+
 ## 0.4.1 (2026-10-08)
 
 - Add this changelog. The notes of each GitHub release are its section of
