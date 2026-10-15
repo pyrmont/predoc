@@ -3,7 +3,7 @@
 Each release lists what changed since the release before it. The changes made
 since the most recent release are under Unreleased.
 
-## Unreleased
+## 0.5.0 (2026-10-15)
 
 - Build with Wattle 0.2.0. `info.edn` declares the executables under `:exes`
   and the man pages under `:docs` in place of `:artifacts` and `:man`, and
