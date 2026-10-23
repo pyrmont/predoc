@@ -3,22 +3,21 @@
 [![Latest Release](https://img.shields.io/github/v/release/pyrmont/predoc)](https://github.com/pyrmont/predoc/releases/latest)
 [![Test Status](https://github.com/pyrmont/predoc/workflows/test/badge.svg)](https://github.com/pyrmont/predoc/actions?query=workflow%3Atest)
 
-Predoc is a Markdown flavour specifically designed for writing man pages.
+Predoc is a Markdown flavour specifically designed for writing man pages. You
+can see Predoc in your browser on the [project homepage][ph].
+
+[ph]: https://pyrmont.github.io/predoc/
 
 > [!WARNING]
 > Predoc is in a beta stage of development. There are likely to be bugs and
 > gaps in its implementation.
 
 This is the repository for the reference implementation of the parser and
-renderer written in the [Wattle programming language][wattle]. It includes a
+renderer written in the [Wattle programming language][wattle]. It provides a
 command-line utility, `predoc`, which converts a Predoc document into a man
 page written in mdoc.
 
 [wattle]: https://github.com/pyrmont/wattle
-
-You can try out Predoc in your browser on the [project homepage][ph].
-
-[ph]: https://pyrmont.github.io/predoc/
 
 ## Example
 
