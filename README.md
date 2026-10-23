@@ -10,11 +10,11 @@ Predoc is a Markdown flavour specifically designed for writing man pages.
 > gaps in its implementation.
 
 This is the repository for the reference implementation of the parser and
-renderer written in the [Wattle programming language][wattle-hp]. It includes a
+renderer written in the [Wattle programming language][wattle]. It includes a
 command-line utility, `predoc`, which converts a Predoc document into a man
 page written in mdoc.
 
-[wattle-hp]: https://github.com/pyrmont/wattle
+[wattle]: https://github.com/pyrmont/wattle
 
 You can try out Predoc in your browser on the [project homepage][ph].
 
@@ -144,10 +144,7 @@ $ cd predoc-<version>
 #### From Source
 
 To build the `predoc` binary from source, you need [Zig][zig] 0.17.0 and
-[Wattle][wattle-hp] 0.2.0 or later installed on your system, including its `share/wattle`
-package (for example, by running `zig build -p ~/.local` in a Wattle checkout).
-The build is declared in `info.edn`, so no `build.zig` is needed. Then you can
-run:
+[Wattle][wattle] 0.2.0 or later installed on your system. Then you can run:
 
 [zig]: https://ziglang.org
 
@@ -177,7 +174,7 @@ $ sudo cp predoc.7 /usr/local/share/man/man7/
 ```
 
 If you have Wattle installed, you can instead build and install `predoc` and
-its man pages under Wattle's prefix in one step:
+its man pages under your `WATTLE_PREFIX` in one step:
 
 ```console
 $ wattle apps install https://github.com/pyrmont/predoc
@@ -197,9 +194,8 @@ $ predoc example.1.predoc
 ```
 
 If only the input filename is given, `predoc` will use this to derive the
-program name and the output filename.
-
-To specify these values explicitly, you can write:
+program name and the output filename. To specify these values explicitly, you
+can write:
 
 ```
 $ predoc --name example --output example.1 example.1.predoc
@@ -223,20 +219,17 @@ More information about `predoc` is, of course, available in `predoc(1)`.
 ## Browser Demo
 
 The browser demo in `pages` runs `predoc` compiled to WebAssembly. A web worker
-(`pages/worker.js`) does the conversions so that typing is never held up. It
-loads the program with `load` from `pages/predoc/dingus.js` once and reuses
-one instance of the runtime for every conversion. To rebuild the program, run:
+(`pages/worker.js`) performs the conversions so that typing remains responsive.
+The program is loaded in `pages/predoc/dingus.js` once and reuses one instance
+of the runtime for every conversion. To rebuild the program, run:
 
 ```console
 $ wattle res/tools/wasm.wattle
 ```
 
-This runs `wattle build web dingus`, replaces the files in `pages/predoc`
-and updates the cache reference in `pages/index.html`. The program is the
-`dingus` artifact in `info.edn`. It is an image run by a runtime that has
-no parser or compiler, so the page loads `wattle-<hash>.wasm`,
-`dingus-<hash>.wimage` and `wasi-<hash>.js`. Zig and the Wattle package are
-needed, as for any build. To check the result without a browser, run the
+This runs `wattle build web dingus`, replaces the files in `pages/predoc` and
+updates the cache reference in `pages/index.html`. Zig and the Wattle package
+are needed, as for any build. To check the result without a browser, run the
 Node.js smoke test:
 
 ```console
